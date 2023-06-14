@@ -40,11 +40,11 @@ class Experiment(ABC):
 
     def start(self, num_samples: int = 35) -> None:
         for shape in self.shapes:
-            log.info("---------------------------")
+            log.info("================================")
             log.info(f"Executing experiments for shape {shape}")
 
             for i in range(num_samples):
-                log.info("================================")
+                log.info("---------------------------")
                 log.info(f"Executing iteration {i}")
                 queue = Queue()
 
