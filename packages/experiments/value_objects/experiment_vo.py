@@ -112,7 +112,9 @@ class Experiment(ABC):
         shape_results.append(
             {
                 "input_memory_usage": inp_mem_usage,
+                "input_max_memory_usage": max(inp_mem_usage),
                 "execution_memory_usage": exp_mem_usage,
+                "execution_max_memory_usage": max(exp_mem_usage),
             }
         )
 

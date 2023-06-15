@@ -76,8 +76,10 @@ class HilbertTransformExperiment(Experiment):
             shape = self._get_shape_value(shape_key)
             shape_dimension = self._get_varying_dimension(shape)
             shape_dimension_value = self._get_shape_in_dimension(shape, shape_dimension)
-            mean = np.mean([result["execution_memory_usage"] for result in results])
-            std_dev = np.std([result["execution_memory_usage"] for result in results])
+            mean = np.mean([result["execution_max_memory_usage"] for result in results])
+            std_dev = np.std(
+                [result["execution_max_memory_usage"] for result in results]
+            )
 
             rows.append([shape_dimension_value, shape_dimension, mean, std_dev])
 
