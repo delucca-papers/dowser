@@ -4,7 +4,7 @@ This experiment aims to explore the memory usage relationship with the input sha
 The general idea is to execute the Hilbert Transform (implemented on SciPy) with a tensor while varying each dimension.
 At the end of the experiment we should see a graph showing a behavior like the following:
 
-TODO: ADD GRAPH
+![](./results/20230627181317/result.png)
 
 As you can see, while varying the dimension the memory usage varies linerly.
 
