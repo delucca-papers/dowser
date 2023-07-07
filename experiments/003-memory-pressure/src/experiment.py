@@ -13,14 +13,18 @@ def run(args):
     print("Time taken: {} seconds".format(elapsed_time))
     print("Memory used: {} KB".format(memory_usage_kb))
 
-    variant_shape = args.d3
     result_filepath = os.path.join(
         os.path.dirname(__file__), args.dirpath, "results.log"
     )
     with open(result_filepath, "a+") as f:
         f.write(
-            "{},{},{},{}\n".format(
-                variant_shape, args.pressure, memory_usage_kb, elapsed_time
+            "{},{},{},{},{},{}\n".format(
+                args.d1,
+                args.d2,
+                args.d3,
+                args.pressure,
+                memory_usage_kb,
+                elapsed_time,
             )
         )
 

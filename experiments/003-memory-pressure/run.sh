@@ -4,6 +4,7 @@ IMAGE_TAG='dowser/003-memory-pressure'
 MEMORY_USAGE_THRESHOL=D
 NUM_SHAPES=5
 SHAPE_BASE_SIZE=200
+PRESSURE_PRECISION=0.05
 TIMESTAMP=$(date +%Y%m%d%H%M%S)
 RESULTS_DIR="results/$TIMESTAMP"
 
@@ -68,7 +69,7 @@ for (( s=1; s<=$NUM_SHAPES; s++ )); do
     echo "  Experiment finished with exit code $last_experiment_exit_code"
 
     if [ "$last_experiment_exit_code" -eq 0 ]; then
-      current_memory_pressure=$(echo $current_memory_pressure 0.01 | awk '{printf "%4.3f\n",$1+$2}')
+      current_memory_pressure=$(echo $current_memory_pressure $PRESSURE_PRECISION | awk '{printf "%4.3f\n",$1+$2}')
     else
       echo "  Experiment failed with exit code $last_experiment_exit_code"
       echo "  Current memory pressure: $current_memory_pressure"
