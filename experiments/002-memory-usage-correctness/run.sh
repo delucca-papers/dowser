@@ -42,8 +42,8 @@ echo "  Running first variant"
 
 run_experiment 100 100 3000 1278488
 
-echo "  Running first variant"
+echo "  Running second variant"
 run_experiment 100 100 2000 1036252
 
-echo "  Running first variant"
+echo "  Running third variant"
 run_experiment 100 100 1600 970184
