@@ -21,6 +21,7 @@ def run(args):
 
     __extract_min_max_memory_usage(df)
     __extract_time_elapsed(df)
+    __extract_min_max_ratio(df)
 
 
 def __extract_min_max_memory_usage(df):
@@ -86,6 +87,21 @@ def __extract_time_elapsed(df):
 
     fig.tight_layout()
     plt.savefig(f"{args.dirpath}/time-elapsed.png")
+    plt.clf()
+
+
+def __extract_min_max_ratio(df):
+    shapes = df["dimension_z"].unique()
+    memory_used_per_z = df.groupby(["dimension_z"])["memory_used"].apply(list)
+
+    min_max_ratios = []
+    for result in memory_used_per_z:
+        min_max_ratios.append(max(result) / min(result))
+
+    plt.plot(shapes, min_max_ratios, marker="o")
+    plt.xlabel("Input shape")
+    plt.ylabel("Allowed memory pressure (KB)")
+    plt.savefig(f"{args.dirpath}/min-max-ratio.png")
     plt.clf()
 
 
