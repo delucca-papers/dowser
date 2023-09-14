@@ -19,7 +19,6 @@ for (( s=1; s<=$NUM_SHAPES; s++ )); do
     echo "  Iteration $i"
     echo "    Varying D1"
     docker run --rm \
-      --gpus all \
       -v $(pwd)/results:/data \
       dowser/004-envelope-experiment \
       --experiment-id $TIMESTAMP \
@@ -28,7 +27,6 @@ for (( s=1; s<=$NUM_SHAPES; s++ )); do
 
     echo "    Varying D2"
     docker run --rm \
-      --gpus all \
       -v $(pwd)/results:/data \
       dowser/004-envelope-experiment \
       --experiment-id $TIMESTAMP \
@@ -37,7 +35,6 @@ for (( s=1; s<=$NUM_SHAPES; s++ )); do
 
     echo "    Varying D3"
     docker run --rm \
-      --gpus all \
       -v $(pwd)/results:/data \
       dowser/004-envelope-experiment \
       --experiment-id $TIMESTAMP \

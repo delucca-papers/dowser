@@ -1,0 +1,17 @@
+iteration,d1,d2,d3,varying_d1,varying_d2,varying_d3,initial_memory_usage_kb,input_data_memory_usage_kb,final_memory_usage_kb
+1,200,100,100,True,False,False,13392,88048,216232
+1,100,200,100,False,True,False,13352,87364,215612
+1,100,100,200,False,False,True,11456,91124,219008
+2,200,100,100,True,False,False,13508,104032,231964
+2,100,200,100,False,True,False,11496,89016,217232
+2,100,100,200,False,False,True,13496,85996,213952
+3,200,100,100,True,False,False,13900,85512,213548
+3,100,200,100,False,True,False,13864,85620,213764
+3,100,100,200,False,False,True,11572,85788,213688
+4,200,100,100,True,False,False,13908,86408,214576
+4,100,200,100,False,True,False,11312,87264,215528
+4,100,100,200,False,False,True,11320,83648,211540
+5,200,100,100,True,False,False,11836,89596,217488
+5,100,200,100,False,True,False,13368,86156,214188
+5,100,100,200,False,False,True,13940,83260,211032
+6,200,100,100,True,False,False,13576,87964,216068

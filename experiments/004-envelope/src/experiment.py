@@ -9,7 +9,8 @@ def run(args):
     # Create the input data
     import dask
 
-    dask.config.set(scheduler="single-threaded")
+    # dask.config.set(scheduler="single-threaded")
+    dask.config.set(scheduler="synchronous")
 
     input = __get_data(args)
     # Store the input data memory usage
