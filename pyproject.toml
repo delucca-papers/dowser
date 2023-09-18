@@ -4,10 +4,7 @@ version = "0.1.0"
 description = "Automated chunk-size tuning for big data"
 authors = ["delucca <gpg@delucca.dev>"]
 readme = "README.md"
-packages = [
-  {include = "libs"},
-  {include = "experiments", from = "packages"},
-]
+packages = []
 
 [tool.poetry.dependencies]
 python = "~3.11"
