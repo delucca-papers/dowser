@@ -46,4 +46,4 @@ done
 docker run --rm \
   -v $(pwd)/results:/data \
   dowser/004-envelope-evaluate \
-  --experiment-id $TIMESTAMP \
+  --experiment-id $TIMESTAMP

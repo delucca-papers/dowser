@@ -1,0 +1,4 @@
+d1,d2,d3,varying_d1,varying_d2,varying_d3,initial_memory_usage_kb,input_data_memory_usage_kb,final_memory_usage_kb,memory_pressure,elapsed_time
+100,100,200,False,False,True,10992,207224,387980,0,0.0008273124694824
+100,100,400,False,False,True,11072,220404,400936,0,0.0008580684661865
+100,100,600,False,False,True,11188,232164,412684,0,0.0008873939514160156

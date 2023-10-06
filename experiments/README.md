@@ -7,3 +7,4 @@ This folder contain all available experiments related to Dowser.
 - [**003 - Memory pressure**](./003-memory-pressure): Evaluates the impact of adding memory pressure while executing an algorithm.
 - [**004 - Envelope**](./004-envelope): Evaluates the memory consumption of the envelope seismic attribute
 - [**005 - Envelope Memory Pressure**](./005-envelope-memory-pressure): Evaluates the result of applying memory pressure on the Envelope attribute
+- [**006 - Profile Memory Pattern**](./006-profile-memory-pattern/): Profile the memory pattern of all seismic attributes
