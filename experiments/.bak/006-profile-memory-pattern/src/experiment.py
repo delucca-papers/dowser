@@ -105,7 +105,7 @@ if __name__ == "__main__":
         default="/data",
     )
     parser.add_argument(
-        "--attribute", help="Attribute to be used", type=str, required=True, choices=["envelope"]
+        "--attribute", help="Attribute to be used", type=str, required=True, choices=["envelope", "semblance"]
     )
     parser.add_argument(
         "--pressure", help="Percentage of memory pressure", type=str, default=0

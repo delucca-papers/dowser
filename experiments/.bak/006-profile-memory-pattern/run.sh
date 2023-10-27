@@ -4,15 +4,15 @@ SSH_KEY_LOCATION=$1
 SSH_KEY=$(cat $SSH_KEY_LOCATION)
 IMAGE_TAG="dowser/006-profile-memory-pattern"
 TIMESTAMP=$(date +%Y%m%d%H%M%S)
-NUM_SHAPES=20
-#NUM_SHAPES=50
-NUM_SAMPLES=1
-#NUM_SAMPLES=35
+# NUM_SHAPES=50
+# NUM_SAMPLES=35
+NUM_SHAPES=10
+NUM_SAMPLES=3
 SHAPE_BASE_SIZE=200
 PRESSURE_PRECISION=0.05
 WITH_MEMORY_PRESSURE_SUFFIX="with-memory-pressure"
 WITHOUT_MEMORY_PRESSURE_SUFFIX="without-memory-pressure"
-ATTRIBUTE="envelope"
+ATTRIBUTE=${2:-"envelope"}
 RESULTS_DIR="$(pwd)/results"
 
 echo "Building Docker images"
@@ -55,8 +55,8 @@ do
       current_memory_pressure=0
 
       while [ "$last_experiment_exit_code" -eq 0 ]; do
-        iteration_memory_difference=$(echo $current_memory_pressure $shape_memory_limit | awk '{printf "%4.3f\n",$1*$2}')
-        iteration_memory_limit=$(echo $shape_memory_limit $iteration_memory_difference | awk '{printf "%.0f\n",$1 - $2}')
+        iteration_memory_difference=$(echo "scale=3; $current_memory_pressure * $shape_memory_limit" | bc)
+        iteration_memory_limit=$(echo "scale=0; $shape_memory_limit - $iteration_memory_difference" | bc)
         echo "---"
         echo "  Current shape: $shape"
         echo "  Current memory pressure: $current_memory_pressure"
@@ -77,7 +77,7 @@ do
         echo "  Experiment finished with exit code $last_experiment_exit_code"
 
         if [ "$last_experiment_exit_code" -eq 0 ]; then
-          current_memory_pressure=$(echo $current_memory_pressure $PRESSURE_PRECISION | awk '{printf "%4.3f\n",$1+$2}')
+          current_memory_pressure=$(echo "scale=3; $current_memory_pressure + $PRESSURE_PRECISION" | bc)
         else
           echo "  Experiment failed with exit code $last_experiment_exit_code"
           echo "  Memory pressure limit: $current_memory_pressure"
