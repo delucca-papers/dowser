@@ -16,18 +16,31 @@ function run {
     __validate_arguments
     __print_about
     __build_image
+
+    __run_experiment
+}
+
+function __run_experiment {
+    echo "Running experiment using image: ${DOCKER_IMAGE_NAME}"
+
+    source ${EXPERIMENT_NAME}/run.sh
+    run_experiment $DOCKER_IMAGE_NAME
 }
 
 function __build_image {
     echo "Building image: ${DOCKER_IMAGE_NAME}"
     echo ${DIVIDER}
     
+    local docker_ssh_key=$(cat ${DOCKER_SSH_KEY_PATH})
+
     docker build \
-        --build-arg SSH_KEY="${SSH_KEY}" \
+        --build-arg SSH_KEY="${docker_ssh_key}" \
         --build-arg UID=${DOCKER_UID} \
         --build-arg GID=${DOCKER_GID} \
         -t ${DOCKER_IMAGE_NAME} \
         .
+    
+    echo ${DIVIDER}
 }
 
 function __validate_arguments {
@@ -113,6 +126,10 @@ function __print_about {
     printf "${TABLE_FORMAT}" "Start time" "$(__get_date)"
     printf "${TABLE_FORMAT}" "Total RAM" "$(__get_total_ram)"
     printf "${TABLE_FORMAT}" "Available RAM" "$(__get_free_ram)"
+    printf "${TABLE_FORMAT}" "Docker image name" ${DOCKER_IMAGE_NAME}
+    printf "${TABLE_FORMAT}" "Docker UID" ${DOCKER_UID}
+    printf "${TABLE_FORMAT}" "Docker GID" ${DOCKER_GID}
+    printf "${TABLE_FORMAT}" "Docker SSH key path" ${DOCKER_SSH_KEY_PATH}
     echo ${TABLE_DIVIDER}
     echo
 }
