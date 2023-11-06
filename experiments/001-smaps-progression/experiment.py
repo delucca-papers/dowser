@@ -1,4 +1,4 @@
-from ..common.test import test
+from common.test import test
 
 print("d")
 test()

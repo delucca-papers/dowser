@@ -29,7 +29,9 @@ RUN chown -R ${UID}:${GID} /experiment
 
 USER ${UID}
 
-COPY common /experiment/common
-COPY 001-smaps-progression /experiment/001-smaps-progression
+COPY --chown=${UID}:${GID} common /experiment/common
+COPY --chown=${UID}:${GID} 001-smaps-progression /experiment/001-smaps-progression
 
-ENTRYPOINT ["conda", "run", "-n", "default"]
+ENV PYTHONPATH "${PYTHONPATH}:/experiment"
+
+ENTRYPOINT ["conda", "run", "-n", "default", "python", "-m"]
