@@ -1,5 +1,7 @@
-cusignal
-dask
+cusignal==23.08.00
+dask==2023.7.1
+dask-cuda==23.8.0
+distributed==2023.7.1
 pandas
 matplotlib
 numpy
