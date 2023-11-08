@@ -1,21 +1,26 @@
 #!/usr/bin/env bash
 
 EXPERIMENT_NAME=
+
+OUTPUT_TIMESTAMP=$(date '+%Y-%m-%d_%H-%M-%S')
+OUTPUT_DIR="output/${OUTPUT_TIMESTAMP}"
+OUTPUT_MEMORY_USAGE_FILE="${OUTPUT_DIR}/memory-usage.csv"
+
+TERMINAL_COLUMNS=$(tput cols)
+TERMINAL_DIVIDER=$(printf -- "-%.0s"  $(seq 1 ${TERMINAL_COLUMNS}))
+
+TABLE_COLUMNS=113;
+TABLE_FORMAT="%-40s : %70s\n"
+TABLE_ROW_DIVIDER=$(printf -- "-%.0s"  $(seq 1 ${TABLE_COLUMNS}))
+TABLE_DIVIDER=$(printf "=%.0s"  $(seq 1 ${TABLE_COLUMNS}))
+
 DOCKER_SSH_KEY_PATH=
 DOCKER_UID=1000
 DOCKER_GID=984
-TIMESTAMP=$(date '+%Y-%m-%d_%H-%M-%S')
-OUTPUT_DIR="output/${TIMESTAMP}"
-
-TERMINAL_COLUMNS=$(tput cols)
-TABLE_COLUMNS=83
-if [[ ${TERMINAL_COLUMNS} -lt 83 ]]; then TABLE_COLUMNS=${TERMINAL_COLUMNS}; fi
-TABLE_FORMAT="%-50s : %30s\n"
-TABLE_ROW_DIVIDER=$(printf -- "-%.0s"  $(seq 1 ${TABLE_COLUMNS}))
-TABLE_DIVIDER=$(printf "=%.0s"  $(seq 1 ${TABLE_COLUMNS}))
-DIVIDER=$(printf -- "-%.0s"  $(seq 1 ${TERMINAL_COLUMNS:-83}))
 DOCKER_IMAGE_NAME="discovery/dowser-experiments"
 DOCKER_CONTAINER_NAME="discovery-experiment"
+
+LOG_VERBOSE=false
 
 function run {
     __parse_arguments $@
@@ -24,9 +29,30 @@ function run {
     __build_image
 
     __run_experiment
+
+    __print_summary
 }
 
-function watch_memory {
+function setup_observer {
+    local experiment_id
+    local experiment_root_pid
+    
+    while read line; do
+        if [[ -z ${experiment_id} ]]; then
+            experiment_id=$(uuidgen)
+        fi
+
+        if [[ -z ${experiment_root_pid} ]]; then
+            experiment_root_pid=$(docker top ${DOCKER_CONTAINER_NAME} | grep ${EXPERIMENT_NAME} | tail -n 1 | tr -s '[:space:]' | cut -d ' ' -f 2)
+        fi
+             
+        echo ${experiment_id} ${experiment_root_pid} ${line}
+    done
+}
+
+
+function observe_memory_usage {
+    local experiment_id
     local experiment_root_pid
     local initial_mem_usage
     local data_mem_usage
@@ -36,11 +62,18 @@ function watch_memory {
     local shared_clean_mem_usage_log
     local shared_dirty_mem_usage_log
     local swap_mem_usage_log
+    
+    if [[ ! -f ${OUTPUT_MEMORY_USAGE_FILE} ]]; then
+        __setup_memory_usage_file
+    fi
+    
+    while read piped_experiment_id piped_experiment_root_pid line; do
+        if [[ -z ${experiment_id} ]]; then
+            experiment_id=${piped_experiment_id}
+        fi
 
-    while read line; do
         if [[ -z ${experiment_root_pid} ]]; then
-            experiment_root_pid=$(docker top ${DOCKER_CONTAINER_NAME} | grep ${EXPERIMENT_NAME} | tail -n 1 | tr -s '[:space:]' | cut -d ' ' -f 2)
-            echo "Experiment root PID is: ${experiment_root_pid}"
+            experiment_root_pid=${piped_experiment_root_pid}
         fi
 
         if [[ ${line} == *"MEM_USAGE"* ]]; then
@@ -75,20 +108,32 @@ function watch_memory {
             
             kill -CONT ${experiment_root_pid}
         fi
+        
+        echo ${experiment_id} ${experiment_root_pid} ${line}
     done
     
-    echo "Memory watch results:"
-    echo ${TABLE_DIVIDER}
-    printf "${TABLE_FORMAT}" "Initial memory usage" "${initial_mem_usage} kB"
-    printf "${TABLE_FORMAT}" "Data memory usage" "${data_mem_usage} kB"
-    printf "${TABLE_FORMAT}" "Computing memory usage" "${computing_mem_usage} kB"
-    echo ${TABLE_ROW_DIVIDER}
-    printf "${TABLE_FORMAT}" "Final memory usage" "${final_mem_usage} kB"
-    echo ${TABLE_DIVIDER}
+    echo "${experiment_id}, ${experiment_root_pid}, ${initial_mem_usage}, ${data_mem_usage}, ${computing_mem_usage}, ${final_mem_usage}" >> ${OUTPUT_MEMORY_USAGE_FILE}
+}
+
+function handle_log {
+    local setup_already_reported=false
+
+    while read experiment_id experiment_root_pid line; do
+        if [[ ${setup_already_reported} = false ]]; then
+            echo "Experiment ID: ${experiment_id}"
+            echo "Experiment root PID: ${experiment_root_pid}"
+
+            setup_already_reported=true
+        fi
+
+        if [[ ${LOG_VERBOSE} = true ]]; then
+            echo ${line}
+        fi
+    done
 }
 
 function __capture_memory_usage {
-    local pid=$1
+    local pid=${1}
     local pid_rollup=$(cat "/proc/${pid}/smaps_rollup")
     local rss_usage=$(echo "${pid_rollup}" | grep -i "Rss" | awk '{print $2}')
     local shared_clean_usage=$(echo "${pid_rollup}" | grep -i "Shared_Clean" | awk '{print $2}')
@@ -110,21 +155,27 @@ function __summarize_mem_usage {
     echo ${total_mem_usage} ${shared_mem_usage}
 }
 
+function __setup_memory_usage_file {
+    echo "Experiment ID, Experiment root PID, Initial memory usage, Data memory usage, Computing memory usage, Final memory usage" > ${OUTPUT_MEMORY_USAGE_FILE}
+}
+
 function __run_experiment {
     echo "Removing past experiment containers"
     docker rm -f ${DOCKER_CONTAINER_NAME} > /dev/null 2>&1
 
     echo "Running experiment using image: ${DOCKER_IMAGE_NAME}"
     echo "Container name: ${DOCKER_CONTAINER_NAME}"
-    echo ${DIVIDER}
+    echo ${TERMINAL_DIVIDER}
 
     source ${EXPERIMENT_NAME}/run.sh
     run_experiment $DOCKER_IMAGE_NAME $DOCKER_CONTAINER_NAME
+
+    echo "Finished running experiment"
 }
 
 function __build_image {
     echo "Building image: ${DOCKER_IMAGE_NAME}"
-    echo ${DIVIDER}
+    echo ${TERMINAL_DIVIDER}
     
     local docker_ssh_key=$(cat ${DOCKER_SSH_KEY_PATH})
 
@@ -135,7 +186,7 @@ function __build_image {
         -t ${DOCKER_IMAGE_NAME} \
         .
     
-    echo ${DIVIDER}
+    echo ${TERMINAL_DIVIDER}
 }
 
 function __validate_arguments {
@@ -214,6 +265,9 @@ function __parse_arguments {
             -o) OUTPUT_DIR="$2"; shift 2;;
             --output-dir) OUTPUT_DIR="${1#*=}"; shift 1;;
 
+            -v) LOG_VERBOSE=true; shift 1;;
+            --verbose) LOG_VERBOSE=true; shift 1;;
+
             *) echo "unknown option: $1" >&2; __help ; exit 1;;
       esac
     done
@@ -230,6 +284,7 @@ usage: $0 [OPTIONS]
     -u, --docker-uid     UID of the user inside the container                (default: 1000)
     -g, --docker-gid     GID of the user inside the container                (default: 984)
     -o, --output-dir     Output directory to store results                   (default: output/<timestamp>)
+    -v, --verbose        Verbose output                                      (default: False)
 EOF
 }
 
@@ -247,6 +302,15 @@ function __print_about {
     printf "${TABLE_FORMAT}" "Output directory" ${OUTPUT_DIR}
     echo ${TABLE_DIVIDER}
     echo
+}
+
+function __print_summary {
+    echo ${TERMINAL_DIVIDER}
+    echo "Experiment summary"
+    echo ${TABLE_DIVIDER}
+    printf "${TABLE_FORMAT}" "Memory usage output file" "${OUTPUT_MEMORY_USAGE_FILE}"
+    print_experiment_summary
+    echo ${TABLE_DIVIDER}
 }
 
 function __get_date {

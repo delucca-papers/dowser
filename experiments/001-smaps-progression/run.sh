@@ -7,5 +7,9 @@ function run_experiment {
     docker run \
         --name ${docker_container_name} \
         ${docker_image_name} 001-smaps-progression.experiment \
-    | watch_memory
+    | setup_observer | observe_memory_usage | handle_log
+}
+
+function print_experiment_summary {
+    :
 }
