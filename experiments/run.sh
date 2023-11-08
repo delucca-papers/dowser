@@ -10,6 +10,7 @@ TABLE_FORMAT="%-50s : %30s\n"
 TABLE_DIVIDER=$(printf "=%.0s"  $(seq 1 83))
 DIVIDER=$(printf -- "-%.0s"  $(seq 1 ${TERMINAL_COLUMNS:-83}))
 DOCKER_IMAGE_NAME="discovery/dowser-experiments"
+DOCKER_CONTAINER_NAME="discovery-experiment"
 
 function run {
     __parse_arguments $@
@@ -20,11 +21,57 @@ function run {
     __run_experiment
 }
 
+function watch_memory {
+    local experiment_root_pid
+    local initial_mem_usage
+    local data_mem_usage
+    local computing_mem_usage
+    local final_mem_usage
+
+    while read line; do
+        if [[ -z ${experiment_root_pid} ]]; then
+            experiment_root_pid=$(docker top ${DOCKER_CONTAINER_NAME} | grep ${EXPERIMENT_NAME} | tail -n 1 | tr -s '[:space:]' | cut -d ' ' -f 2)
+            echo "Experiment root PID is: ${experiment_root_pid}"
+        fi
+
+        if [[ ${line} == *"MEM_USAGE"* ]]; then
+            local current_mem_usage=$(__capture_memory_usage ${experiment_root_pid})
+            echo $current_mem_usage
+            # TODO: PAREI AQUI
+
+            if [[ ${line} == *"INITIAL"* ]]; then
+                initial_mem_usage=${current_mem_usage}
+            elif [[ ${line} == *"DATA"* ]]; then
+                data_mem_usage=${current_mem_usage}
+            elif [[ ${line} == *"COMPUTING"* ]]; then
+                computing_mem_usage=${current_mem_usage}
+            fi
+        fi
+    done
+
+    echo
+    echo ${TABLE_DIVIDER}
+    printf "${TABLE_FORMAT}" "Initial memory usage" "${initial_mem_usage}"
+    printf "${TABLE_FORMAT}" "Data memory usage" "${data_mem_usage}"
+    printf "${TABLE_FORMAT}" "Computing memory usage" "${computing_mem_usage}"
+    echo ${TABLE_DIVIDER}
+    echo
+}
+
+function __capture_memory_usage {
+    local pid=$1
+    echo $(cat "/proc/${pid}/smaps_rollup")
+}
+
 function __run_experiment {
+    echo "Removing past experiment containers"
+    docker rm -f ${DOCKER_CONTAINER_NAME} > /dev/null 2>&1
+
     echo "Running experiment using image: ${DOCKER_IMAGE_NAME}"
+    echo "Container name: ${DOCKER_CONTAINER_NAME}"
 
     source ${EXPERIMENT_NAME}/run.sh
-    run_experiment $DOCKER_IMAGE_NAME
+    run_experiment $DOCKER_IMAGE_NAME $DOCKER_CONTAINER_NAME
 }
 
 function __build_image {

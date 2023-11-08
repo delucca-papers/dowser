@@ -4,5 +4,3 @@ def run(input, pipeline):
     quality = Envelope()
     pipeline.add(quality, X=lambda: input)
     pipeline.run()
-
-    return pipeline.get_result_from(quality).compute()

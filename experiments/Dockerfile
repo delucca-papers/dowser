@@ -2,7 +2,7 @@ FROM continuumio/miniconda3:23.5.2-0-alpine
 
 ARG SSH_KEY
 ARG UID=1000
-ARG GID=1000
+ARG GID=984
 ARG UNAME=dowser
 ARG GNAME=dowser_users
 ARG DIRNAME=experiments
@@ -44,4 +44,4 @@ COPY --chown=${UID}:${GID} 001-smaps-progression ${BASEDIR}/001-smaps-progressio
 
 ENV PYTHONPATH "${PYTHONPATH}:${BASEDIR}"
 
-ENTRYPOINT ["conda", "run", "-n", "experiments", "python", "-m"]
+ENTRYPOINT ["conda", "run", "--no-capture-output", "-n", "experiments", "python", "-u", "-m"]
