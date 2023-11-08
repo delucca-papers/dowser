@@ -3,11 +3,16 @@
 EXPERIMENT_NAME=
 DOCKER_SSH_KEY_PATH=
 DOCKER_UID=1000
-DOCKER_GID=1000
+DOCKER_GID=984
+TIMESTAMP=$(date '+%Y-%m-%d_%H-%M-%S')
+OUTPUT_DIR="output/${TIMESTAMP}"
 
 TERMINAL_COLUMNS=$(tput cols)
+TABLE_COLUMNS=83
+if [[ ${TERMINAL_COLUMNS} -lt 83 ]]; then TABLE_COLUMNS=${TERMINAL_COLUMNS}; fi
 TABLE_FORMAT="%-50s : %30s\n"
-TABLE_DIVIDER=$(printf "=%.0s"  $(seq 1 83))
+TABLE_ROW_DIVIDER=$(printf -- "-%.0s"  $(seq 1 ${TABLE_COLUMNS}))
+TABLE_DIVIDER=$(printf "=%.0s"  $(seq 1 ${TABLE_COLUMNS}))
 DIVIDER=$(printf -- "-%.0s"  $(seq 1 ${TERMINAL_COLUMNS:-83}))
 DOCKER_IMAGE_NAME="discovery/dowser-experiments"
 DOCKER_CONTAINER_NAME="discovery-experiment"
@@ -27,6 +32,10 @@ function watch_memory {
     local data_mem_usage
     local computing_mem_usage
     local final_mem_usage
+    local rss_mem_usage_log
+    local shared_clean_mem_usage_log
+    local shared_dirty_mem_usage_log
+    local swap_mem_usage_log
 
     while read line; do
         if [[ -z ${experiment_root_pid} ]]; then
@@ -35,32 +44,70 @@ function watch_memory {
         fi
 
         if [[ ${line} == *"MEM_USAGE"* ]]; then
-            local current_mem_usage=$(__capture_memory_usage ${experiment_root_pid})
-            echo $current_mem_usage
-            # TODO: PAREI AQUI
-
+            read -r current_rss_mem_usage current_shared_clean_mem_usage current_shared_dirty_mem_usage current_swap_mem_usage <<< $(__capture_memory_usage ${experiment_root_pid})
+            read -r current_mem_usage current_shared_mem_usage <<< $(__summarize_mem_usage ${current_rss_mem_usage} ${current_shared_clean_mem_usage} ${current_shared_dirty_mem_usage} ${current_swap_mem_usage})
+            
+            rss_mem_usage_log="${rss_mem_usage_log} ${current_rss_mem_usage}"
+            shared_clean_mem_usage_log="${shared_clean_mem_usage_log} ${current_shared_clean_mem_usage}"
+            shared_dirty_mem_usage_log="${shared_dirty_mem_usage_log} ${current_shared_dirty_mem_usage}"
+            swap_mem_usage_log="${swap_mem_usage_log} ${current_swap_mem_usage}"
+            final_mem_usage=${current_mem_usage}
+            
             if [[ ${line} == *"INITIAL"* ]]; then
                 initial_mem_usage=${current_mem_usage}
             elif [[ ${line} == *"DATA"* ]]; then
-                data_mem_usage=${current_mem_usage}
+                if [[ -z ${initial_mem_usage} ]]; then
+                    data_mem_usage=${current_mem_usage}
+                else
+                    data_mem_usage=$((${current_mem_usage} - ${initial_mem_usage}))
+                fi
             elif [[ ${line} == *"COMPUTING"* ]]; then
-                computing_mem_usage=${current_mem_usage}
+                if [[ -z ${data_mem_usage} ]]; then
+                    if [[ -z ${initial_mem_usage} ]]; then
+                        computing_mem_usage=${current_mem_usage}
+                    else
+                        computing_mem_usage=$((${current_mem_usage} - ${initial_mem_usage}))
+                    fi
+                else
+                    computing_mem_usage=$((${current_mem_usage} - ${data_mem_usage}))
+                fi
             fi
+            
+            kill -CONT ${experiment_root_pid}
         fi
     done
-
-    echo
+    
+    echo "Memory watch results:"
     echo ${TABLE_DIVIDER}
-    printf "${TABLE_FORMAT}" "Initial memory usage" "${initial_mem_usage}"
-    printf "${TABLE_FORMAT}" "Data memory usage" "${data_mem_usage}"
-    printf "${TABLE_FORMAT}" "Computing memory usage" "${computing_mem_usage}"
+    printf "${TABLE_FORMAT}" "Initial memory usage" "${initial_mem_usage} kB"
+    printf "${TABLE_FORMAT}" "Data memory usage" "${data_mem_usage} kB"
+    printf "${TABLE_FORMAT}" "Computing memory usage" "${computing_mem_usage} kB"
+    echo ${TABLE_ROW_DIVIDER}
+    printf "${TABLE_FORMAT}" "Final memory usage" "${final_mem_usage} kB"
     echo ${TABLE_DIVIDER}
-    echo
 }
 
 function __capture_memory_usage {
     local pid=$1
-    echo $(cat "/proc/${pid}/smaps_rollup")
+    local pid_rollup=$(cat "/proc/${pid}/smaps_rollup")
+    local rss_usage=$(echo "${pid_rollup}" | grep -i "Rss" | awk '{print $2}')
+    local shared_clean_usage=$(echo "${pid_rollup}" | grep -i "Shared_Clean" | awk '{print $2}')
+    local shared_dirty_usage=$(echo "${pid_rollup}" | grep -i "Shared_Dirty" | awk '{print $2}')
+    local swap_usage=$(echo "${pid_rollup}" | grep -i "Swap" | awk '{print $2}')
+    
+    echo ${rss_usage} ${shared_clean_usage} ${shared_dirty_usage} ${swap_usage}
+}
+
+function __summarize_mem_usage {
+    local rss_usage=$1
+    local shared_clean_usage=$2
+    local shared_dirty_usage=$3
+    local swap_usage=$4
+    
+    local total_mem_usage=$((${rss_usage} + ${shared_clean_usage} + ${shared_dirty_usage} + ${swap_usage}))
+    local shared_mem_usage=$((${shared_clean_usage} + ${shared_dirty_usage}))
+
+    echo ${total_mem_usage} ${shared_mem_usage}
 }
 
 function __run_experiment {
@@ -69,6 +116,7 @@ function __run_experiment {
 
     echo "Running experiment using image: ${DOCKER_IMAGE_NAME}"
     echo "Container name: ${DOCKER_CONTAINER_NAME}"
+    echo ${DIVIDER}
 
     source ${EXPERIMENT_NAME}/run.sh
     run_experiment $DOCKER_IMAGE_NAME $DOCKER_CONTAINER_NAME
@@ -93,6 +141,7 @@ function __build_image {
 function __validate_arguments {
     __validate_experiment_name
     __validate_docker_arguments
+    __validate_output_arguments
 }
 
 function __validate_experiment_name {
@@ -130,6 +179,20 @@ function __validate_docker_arguments {
     fi
 }
 
+function __validate_output_arguments {
+    if [ -z ${OUTPUT_DIR} ]; then
+        echo "Output directory is required"
+        exit 1
+    fi
+    
+    if [ -d ${OUTPUT_DIR} ]; then
+        echo "Output directory ${OUTPUT_DIR} already exists"
+        exit 1
+    fi
+
+    mkdir -p ${OUTPUT_DIR}
+}
+
 function __parse_arguments {
     while [ "$#" -gt 0 ]; do
         case "$1" in
@@ -148,6 +211,9 @@ function __parse_arguments {
             -g) DOCKER_GID="$2"; shift 2;;
             --docker-gid) DOCKER_GID="${1#*=}"; shift 1;;
 
+            -o) OUTPUT_DIR="$2"; shift 2;;
+            --output-dir) OUTPUT_DIR="${1#*=}"; shift 1;;
+
             *) echo "unknown option: $1" >&2; __help ; exit 1;;
       esac
     done
@@ -159,10 +225,11 @@ Executes a Dowser experiment. Such experiments are designed to evaluate the memo
 
 usage: $0 [OPTIONS]
     -h, --help           Show this message
-    -e, --experiment     Experiment name
-    -s, --ssh-key-path   Path to the SSH key used to clone the repository
-    -u, --docker-uid     UID of the user inside the container
-    -g, --docker-gid     GID of the user inside the container
+    -e, --experiment     Experiment name                                     (required)
+    -s, --ssh-key-path   Path to the SSH key used to clone the repository    (required)
+    -u, --docker-uid     UID of the user inside the container                (default: 1000)
+    -g, --docker-gid     GID of the user inside the container                (default: 984)
+    -o, --output-dir     Output directory to store results                   (default: output/<timestamp>)
 EOF
 }
 
@@ -177,6 +244,7 @@ function __print_about {
     printf "${TABLE_FORMAT}" "Docker UID" ${DOCKER_UID}
     printf "${TABLE_FORMAT}" "Docker GID" ${DOCKER_GID}
     printf "${TABLE_FORMAT}" "Docker SSH key path" ${DOCKER_SSH_KEY_PATH}
+    printf "${TABLE_FORMAT}" "Output directory" ${OUTPUT_DIR}
     echo ${TABLE_DIVIDER}
     echo
 }
