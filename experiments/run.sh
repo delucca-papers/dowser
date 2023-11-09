@@ -5,6 +5,7 @@ EXPERIMENT_NAME=
 OUTPUT_TIMESTAMP=$(date '+%Y-%m-%d_%H-%M-%S')
 OUTPUT_DIR="output/${OUTPUT_TIMESTAMP}"
 OUTPUT_MEMORY_USAGE_FILE="${OUTPUT_DIR}/memory-usage.csv"
+OUTPUT_PID_REFERENCE_FILE="${OUTPUT_DIR}/pid-reference.csv"
 
 TERMINAL_COLUMNS=$(tput cols)
 TERMINAL_DIVIDER=$(printf -- "-%.0s"  $(seq 1 ${TERMINAL_COLUMNS}))
@@ -36,6 +37,7 @@ function run {
 function setup_observer {
     local experiment_id
     local experiment_root_pid
+    local pid_reference_file_stored
     
     while read line; do
         if [[ -z ${experiment_id} ]]; then
@@ -44,6 +46,11 @@ function setup_observer {
 
         if [[ -z ${experiment_root_pid} ]]; then
             experiment_root_pid=$(docker top ${DOCKER_CONTAINER_NAME} | grep ${EXPERIMENT_NAME} | tail -n 1 | tr -s '[:space:]' | cut -d ' ' -f 2)
+        fi
+        
+        if [[ -z ${pid_reference_file_stored} ]]; then
+            __store_pid_reference ${experiment_id} ${experiment_root_pid}
+            pid_reference_file_stored=true
         fi
              
         echo ${experiment_id} ${experiment_root_pid} ${line}
@@ -58,10 +65,7 @@ function observe_memory_usage {
     local data_mem_usage
     local computing_mem_usage
     local final_mem_usage
-    local rss_mem_usage_log
-    local shared_clean_mem_usage_log
-    local shared_dirty_mem_usage_log
-    local swap_mem_usage_log
+    local mem_usage_log
     
     if [[ ! -f ${OUTPUT_MEMORY_USAGE_FILE} ]]; then
         __setup_memory_usage_file
@@ -77,13 +81,9 @@ function observe_memory_usage {
         fi
 
         if [[ ${line} == *"MEM_USAGE"* ]]; then
-            read -r current_rss_mem_usage current_shared_clean_mem_usage current_shared_dirty_mem_usage current_swap_mem_usage <<< $(__capture_memory_usage ${experiment_root_pid})
-            read -r current_mem_usage current_shared_mem_usage <<< $(__summarize_mem_usage ${current_rss_mem_usage} ${current_shared_clean_mem_usage} ${current_shared_dirty_mem_usage} ${current_swap_mem_usage})
+            read -r current_mem_usage <<< $(__capture_process_tree_memory_usage ${experiment_root_pid})
             
-            rss_mem_usage_log="${rss_mem_usage_log} ${current_rss_mem_usage}"
-            shared_clean_mem_usage_log="${shared_clean_mem_usage_log} ${current_shared_clean_mem_usage}"
-            shared_dirty_mem_usage_log="${shared_dirty_mem_usage_log} ${current_shared_dirty_mem_usage}"
-            swap_mem_usage_log="${swap_mem_usage_log} ${current_swap_mem_usage}"
+            mem_usage_log="${mem_usage_log} ${current_mem_usage}"
             final_mem_usage=${current_mem_usage}
             
             if [[ ${line} == *"INITIAL"* ]]; then
@@ -112,7 +112,7 @@ function observe_memory_usage {
         echo ${experiment_id} ${experiment_root_pid} ${line}
     done
     
-    echo "${experiment_id}, ${experiment_root_pid}, ${initial_mem_usage}, ${data_mem_usage}, ${computing_mem_usage}, ${final_mem_usage}" >> ${OUTPUT_MEMORY_USAGE_FILE}
+    echo "${experiment_root_pid}, ${initial_mem_usage}, ${data_mem_usage}, ${computing_mem_usage}, ${final_mem_usage}" >> ${OUTPUT_MEMORY_USAGE_FILE}
 }
 
 function handle_log {
@@ -132,7 +132,16 @@ function handle_log {
     done
 }
 
-function __capture_memory_usage {
+function __capture_process_tree_memory_usage {
+    local root_pid=${1}
+    local children_pids=$(ps -o pid --no-headers --ppid ${root_pid})
+
+    read -r total_mem_usage <<< $(__capture_process_memory_usage ${root_pid})
+    
+    echo ${total_mem_usage}
+}
+
+function __capture_process_memory_usage {
     local pid=${1}
     local pid_rollup=$(cat "/proc/${pid}/smaps_rollup")
     local rss_usage=$(echo "${pid_rollup}" | grep -i "Rss" | awk '{print $2}')
@@ -140,7 +149,7 @@ function __capture_memory_usage {
     local shared_dirty_usage=$(echo "${pid_rollup}" | grep -i "Shared_Dirty" | awk '{print $2}')
     local swap_usage=$(echo "${pid_rollup}" | grep -i "Swap" | awk '{print $2}')
     
-    echo ${rss_usage} ${shared_clean_usage} ${shared_dirty_usage} ${swap_usage}
+    echo $(__summarize_mem_usage ${rss_usage} ${shared_clean_usage} ${shared_dirty_usage} ${swap_usage})
 }
 
 function __summarize_mem_usage {
@@ -150,13 +159,20 @@ function __summarize_mem_usage {
     local swap_usage=$4
     
     local total_mem_usage=$((${rss_usage} + ${shared_clean_usage} + ${shared_dirty_usage} + ${swap_usage}))
-    local shared_mem_usage=$((${shared_clean_usage} + ${shared_dirty_usage}))
 
-    echo ${total_mem_usage} ${shared_mem_usage}
+    echo ${total_mem_usage}
 }
 
 function __setup_memory_usage_file {
-    echo "Experiment ID, Experiment root PID, Initial memory usage, Data memory usage, Computing memory usage, Final memory usage" > ${OUTPUT_MEMORY_USAGE_FILE}
+    echo "Experiment root PID, Initial memory usage, Data memory usage, Computing memory usage, Final memory usage" > ${OUTPUT_MEMORY_USAGE_FILE}
+}
+
+function __store_pid_reference {
+    if [[ ! -f ${OUTPUT_PID_REFERENCE_FILE} ]]; then
+        echo "Experiment ID, Experiment root PID" > ${OUTPUT_PID_REFERENCE_FILE}
+    fi
+
+    echo "${1}, ${2}" >> ${OUTPUT_PID_REFERENCE_FILE}
 }
 
 function __run_experiment {
