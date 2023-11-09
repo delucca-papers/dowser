@@ -1,4 +1,4 @@
-def store_mem_usage(type: str):
+def wait_for_signal(signal_type: str):
     import signal
     from time import sleep
 
@@ -12,7 +12,7 @@ def store_mem_usage(type: str):
         waiting_for_signal = False
 
     signal.signal(signal.SIGCONT, handle_signal)
-    print(f"Capture {type}_MEM_USAGE")
+    print(f"Waiting for {signal_type} signal...")
 
     while waiting_for_signal:
         sleep(1)
