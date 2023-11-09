@@ -6,6 +6,7 @@ function run_experiment {
     local docker_image_name=$1
     local docker_container_name=$2
 
+    echo "Running and collecting smaps data..."
     docker run \
         --name ${docker_container_name} \
         ${docker_image_name} 001-smaps-progression.experiment \
@@ -13,7 +14,9 @@ function run_experiment {
 }
 
 function print_experiment_summary {
-    :
+    local amount_smap_logs=$(cat ${OUTPUT_SMAPS_HISTORY} | tail -n +2 | wc -l)
+
+    printf "${TABLE_FORMAT}" "Collected smaps data points" "${amount_smap_logs}"
 }
 
 function __setup_memory_usage_wacher {
