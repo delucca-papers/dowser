@@ -58,7 +58,7 @@ function setup_observer {
 }
 
 
-function observe_memory_usage {
+function observe_memory_usage_signals {
     local experiment_id
     local experiment_root_pid
     local initial_mem_usage
@@ -81,7 +81,8 @@ function observe_memory_usage {
         fi
 
         if [[ ${line} == *"MEM_USAGE"* ]]; then
-            read -r current_mem_usage <<< $(__capture_process_tree_memory_usage ${experiment_root_pid})
+            read -r current_rss_mem_usage current_shared_clean_mem_usage current_shared_dirty_mem_usage current_swap_mem_usage <<< $(capture_process_tree_memory_usage ${experiment_root_pid})
+            read -r current_mem_usage <<< $(__summarize_mem_usage ${current_rss_mem_usage} ${current_shared_clean_mem_usage} ${current_shared_dirty_mem_usage} ${current_swap_mem_usage})
             
             mem_usage_log="${mem_usage_log} ${current_mem_usage}"
             final_mem_usage=${current_mem_usage}
@@ -132,24 +133,25 @@ function handle_log {
     done
 }
 
-function __capture_process_tree_memory_usage {
+function capture_process_tree_memory_usage {
     local root_pid=${1}
     local children_pids=$(ps -o pid --no-headers --ppid ${root_pid})
 
-    read -r total_mem_usage <<< $(__capture_process_memory_usage ${root_pid})
+    read -r rss shared_clean shared_dirty swap <<< $(capture_process_memory_usage ${root_pid})
+    # TODO - Como vamos somar os processos filhos?
     
-    echo ${total_mem_usage}
+    echo ${rss} ${shared_clean} ${shared_dirty} ${swap}
 }
 
-function __capture_process_memory_usage {
+function capture_process_memory_usage {
     local pid=${1}
-    local pid_rollup=$(cat "/proc/${pid}/smaps_rollup")
+    local pid_rollup=$(cat "/proc/${pid}/smaps_rollup" 2>/dev/null)
     local rss_usage=$(echo "${pid_rollup}" | grep -i "Rss" | awk '{print $2}')
     local shared_clean_usage=$(echo "${pid_rollup}" | grep -i "Shared_Clean" | awk '{print $2}')
     local shared_dirty_usage=$(echo "${pid_rollup}" | grep -i "Shared_Dirty" | awk '{print $2}')
     local swap_usage=$(echo "${pid_rollup}" | grep -i "Swap" | awk '{print $2}')
     
-    echo $(__summarize_mem_usage ${rss_usage} ${shared_clean_usage} ${shared_dirty_usage} ${swap_usage})
+    echo ${rss_usage} ${shared_clean_usage} ${shared_dirty_usage} ${swap_usage}
 }
 
 function __summarize_mem_usage {
