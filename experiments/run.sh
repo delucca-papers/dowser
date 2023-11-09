@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 
 EXPERIMENT_NAME=
+BASE_DIR=$(cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd)
 
 OUTPUT_TIMESTAMP=$(date '+%Y-%m-%d_%H-%M-%S')
 OUTPUT_DIR="output/${OUTPUT_TIMESTAMP}"
-OUTPUT_MEMORY_USAGE_FILE="${OUTPUT_DIR}/memory-usage.csv"
-OUTPUT_ROOT_PID_REFERENCE_FILE="${OUTPUT_DIR}/root-pid-reference.csv"
+OUTPUT_MEMORY_USAGE_FILENAME="memory-usage.csv"
+OUTPUT_ROOT_PID_REFERENCE_FILENAME="root-pid-reference.csv"
 
 TERMINAL_COLUMNS=$(tput cols)
 TERMINAL_DIVIDER=$(printf -- "-%.0s"  $(seq 1 ${TERMINAL_COLUMNS}))
@@ -37,6 +38,7 @@ function run {
 function launch_container {
     docker rm -f ${DOCKER_CONTAINER_NAME} > /dev/null 2>&1
     docker run \
+        -v ${BASE_DIR}/${OUTPUT_DIR}:/output \
         --name ${DOCKER_CONTAINER_NAME} \
         ${DOCKER_IMAGE_NAME} \
             $@
@@ -174,19 +176,20 @@ function __summarize_mem_usage {
 }
 
 function __setup_memory_usage_file {
-    echo "Execution root PID, Initial memory usage, Data memory usage, Computing memory usage, Final memory usage" > ${OUTPUT_MEMORY_USAGE_FILE}
+    echo "Execution root PID, Initial memory usage, Data memory usage, Computing memory usage, Final memory usage" > "${OUTPUT_DIR}/${OUTPUT_MEMORY_USAGE_FILENAME}"
 }
 
 function __store_pid_reference {
-    if [[ ! -f ${OUTPUT_ROOT_PID_REFERENCE_FILE} ]]; then
-        echo "Execution ID, Execution root PID" > ${OUTPUT_ROOT_PID_REFERENCE_FILE}
+    local reference_filepath="${OUTPUT_DIR}/${OUTPUT_ROOT_PID_REFERENCE_FILENAME}"
+
+    if [[ ! -f ${reference_filepath} ]]; then
+        echo "Execution ID, Execution root PID" > ${reference_filepath}
     fi
 
-    echo "${1}, ${2}" >> ${OUTPUT_ROOT_PID_REFERENCE_FILE}
+    echo "${1}, ${2}" >> ${reference_filepath}
 }
 
 function __run_experiment {
-    source ${EXPERIMENT_NAME}/run.sh
     run_experiment $DOCKER_IMAGE_NAME $DOCKER_CONTAINER_NAME
 
     echo "Finished running experiment"
@@ -269,8 +272,8 @@ function __parse_arguments {
             -h) __help; exit 0;;
             --help) __help; exit 0;;
 
-            -e) EXPERIMENT_NAME="$2"; shift 2;;
-            --experiment=*) EXPERIMENT_NAME="${1#*=}"; shift 1;;
+            -e) EXPERIMENT_NAME="$2"; source ${EXPERIMENT_NAME}/run.sh; shift 2;;
+            --experiment=*) EXPERIMENT_NAME="${1#*=}"; source ${EXPERIMENT_NAME}/run.sh; shift 1;;
 
             -s) DOCKER_SSH_KEY_PATH="$2"; shift 2;;
             --ssh-key-path) DOCKER_SSH_KEY_PATH="${1#*=}"; shift 1;;
@@ -327,7 +330,7 @@ function __print_summary {
     echo ${TERMINAL_DIVIDER}
     echo "Experiment summary"
     echo ${TABLE_DIVIDER}
-    printf "${TABLE_FORMAT}" "Memory usage output file" "${OUTPUT_MEMORY_USAGE_FILE}"
+    printf "${TABLE_FORMAT}" "Output directory" "${OUTPUT_DIR}"
     print_experiment_summary
     echo ${TABLE_DIVIDER}
 }
