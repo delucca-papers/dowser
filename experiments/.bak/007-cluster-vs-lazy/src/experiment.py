@@ -8,24 +8,6 @@ print(f"Shape: {shape}")
 print(f"Initial memory usage: {initial_mem_usage} KB")
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 # import argparse
 # import time
 # import importlib
@@ -34,7 +16,7 @@ print(f"Initial memory usage: {initial_mem_usage} KB")
 # def run(args):
 #     # Create the input data
 #     import dask
-    
+
 #     # dask.config.set(scheduler="single-threaded")
 #     dask.config.set(scheduler="synchronous")
 
@@ -56,7 +38,7 @@ print(f"Initial memory usage: {initial_mem_usage} KB")
 #     )
 #     import psutil
 #     import os
-    
+
 #     current_process = psutil.Process()
 #     children = current_process.children(recursive=True)
 #     selfpid = os.getpid()
@@ -69,7 +51,7 @@ print(f"Initial memory usage: {initial_mem_usage} KB")
 #         print('Child memory is:')
 #         os.system(f"cat /proc/{child.pid}/status | grep VmPeak")
 #     time.sleep(100)
-    
+
 
 #     # Store the results
 #     import pandas as pd
@@ -78,7 +60,7 @@ print(f"Initial memory usage: {initial_mem_usage} KB")
 #     varying_d2 = args.d2 != args.d1 and args.d2 != args.d3
 #     varying_d3 = args.d3 != args.d1 and args.d3 != args.d2
 
-#     result_folder = os.path.join(args.output_dir, args.experiment_id)
+#     result_folder = os.path.join(args.output_dir, args.execution_id)
 #     os.makedirs(result_folder, exist_ok=True)
 #     suffix = f"-{args.output_suffix}" if args.output_suffix else ""
 #     iterations_filepath = os.path.join(result_folder, f"iterations{suffix}.csv")

@@ -8,10 +8,9 @@ def run(args):
     # Get initial memory usage (before running anything)
     initial_memory_usage_kb = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
 
-
     # Create the input data
     import dask
-    
+
     # dask.config.set(scheduler="single-threaded")
     dask.config.set(scheduler="synchronous")
 
@@ -40,7 +39,7 @@ def run(args):
     varying_d2 = args.d2 != args.d1 and args.d2 != args.d3
     varying_d3 = args.d3 != args.d1 and args.d3 != args.d2
 
-    result_folder = os.path.join(args.output_dir, args.experiment_id)
+    result_folder = os.path.join(args.output_dir, args.execution_id)
     os.makedirs(result_folder, exist_ok=True)
     suffix = f"-{args.output_suffix}" if args.output_suffix else ""
     iterations_filepath = os.path.join(result_folder, f"iterations{suffix}.csv")
@@ -85,9 +84,7 @@ if __name__ == "__main__":
         "--experiment-id", help="ID of the experiment", type=str, required=True
     )
     parser.add_argument(
-        "--output-suffix",
-        help="Suffix to add to the output file",
-        type=str
+        "--output-suffix", help="Suffix to add to the output file", type=str
     )
     parser.add_argument(
         "--d1", help="Amount of records on the first dimension", type=int, default=100
@@ -105,7 +102,11 @@ if __name__ == "__main__":
         default="/data",
     )
     parser.add_argument(
-        "--attribute", help="Attribute to be used", type=str, required=True, choices=["envelope", "semblance"]
+        "--attribute",
+        help="Attribute to be used",
+        type=str,
+        required=True,
+        choices=["envelope", "semblance"],
     )
     parser.add_argument(
         "--pressure", help="Percentage of memory pressure", type=str, default=0

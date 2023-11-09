@@ -6,9 +6,10 @@ import matplotlib.pyplot as plt
 def run(args):
     __extract_memory_profile_without_memory_pressure(args)
     __extract_memory_profile_with_memory_pressure(args)
-    
+
+
 def __extract_memory_profile_without_memory_pressure(args):
-    experiment_dirpath = f"{args.output_dir}/{args.experiment_id}"
+    experiment_dirpath = f"{args.output_dir}/{args.execution_id}"
     df = pd.read_csv(f"{experiment_dirpath}/iterations-without-memory-pressure.csv")
 
     df_dim_1 = df[df["varying_d1"] == True]
@@ -25,10 +26,10 @@ def __extract_memory_profile_without_memory_pressure(args):
 
     if len(means_dim_1) > 0:
         plt.plot(shapes_dim_1, means_dim_1, label="Varying Dimension 1", marker="o")
-    
+
     if len(means_dim_2) > 0:
         plt.plot(shapes_dim_2, means_dim_2, label="Varying Dimension 2", marker="o")
-        
+
     if len(means_dim_3) > 0:
         plt.plot(shapes_dim_3, means_dim_3, label="Varying Dimension 3", marker="o")
 
@@ -37,18 +38,19 @@ def __extract_memory_profile_without_memory_pressure(args):
     plt.legend()
     plt.savefig(f"{experiment_dirpath}/memory-profile-without-memory-pressure.png")
     plt.clf()
-    
+
+
 def __extract_memory_profile_with_memory_pressure(args):
-    experiment_dirpath = f"{args.output_dir}/{args.experiment_id}"
+    experiment_dirpath = f"{args.output_dir}/{args.execution_id}"
     df = pd.read_csv(f"{experiment_dirpath}/iterations-with-memory-pressure.csv")
-    
+
     __extract_min_max_memory_usage(df)
     __extract_time_elapsed(df)
     __extract_min_max_ratio(df)
 
 
 def __extract_min_max_memory_usage(df):
-    experiment_dirpath = f"{args.output_dir}/{args.experiment_id}"
+    experiment_dirpath = f"{args.output_dir}/{args.execution_id}"
 
     df_dim_1 = df[df["varying_d1"] == True]
     df_dim_2 = df[df["varying_d2"] == True]
@@ -62,23 +64,34 @@ def __extract_min_max_memory_usage(df):
         min_dim_1 = df_dim_1.groupby("d1")["final_memory_usage_kb"].min()
         max_dim_1 = df_dim_1.groupby("d1")["final_memory_usage_kb"].max()
 
-        plt.plot(shapes_dim_1, min_dim_1, label="Min memory used for dimension 1", marker="o")
-        plt.plot(shapes_dim_1, max_dim_1, label="Max memory used for dimension 1", marker="o")
+        plt.plot(
+            shapes_dim_1, min_dim_1, label="Min memory used for dimension 1", marker="o"
+        )
+        plt.plot(
+            shapes_dim_1, max_dim_1, label="Max memory used for dimension 1", marker="o"
+        )
 
     if len(shapes_dim_2) > 0:
         min_dim_2 = df_dim_2.groupby("d2")["final_memory_usage_kb"].min()
         max_dim_2 = df_dim_2.groupby("d2")["final_memory_usage_kb"].max()
 
-        plt.plot(shapes_dim_2, min_dim_2, label="Min memory used for dimension 2", marker="o")
-        plt.plot(shapes_dim_2, max_dim_2, label="Max memory used for dimension 2", marker="o")
-        
+        plt.plot(
+            shapes_dim_2, min_dim_2, label="Min memory used for dimension 2", marker="o"
+        )
+        plt.plot(
+            shapes_dim_2, max_dim_2, label="Max memory used for dimension 2", marker="o"
+        )
+
     if len(shapes_dim_3) > 0:
         min_dim_3 = df_dim_3.groupby("d3")["final_memory_usage_kb"].min()
         max_dim_3 = df_dim_3.groupby("d3")["final_memory_usage_kb"].max()
-        
-        plt.plot(shapes_dim_3, min_dim_3, label="Min memory used for dimension 3", marker="o")
-        plt.plot(shapes_dim_3, max_dim_3, label="Max memory used for dimension 3", marker="o")
 
+        plt.plot(
+            shapes_dim_3, min_dim_3, label="Min memory used for dimension 3", marker="o"
+        )
+        plt.plot(
+            shapes_dim_3, max_dim_3, label="Max memory used for dimension 3", marker="o"
+        )
 
     plt.xlabel("Input shape")
     plt.ylabel("Memory usage (KB)")
@@ -88,7 +101,7 @@ def __extract_min_max_memory_usage(df):
 
 
 def __extract_time_elapsed(df):
-    experiment_dirpath = f"{args.output_dir}/{args.experiment_id}"
+    experiment_dirpath = f"{args.output_dir}/{args.execution_id}"
 
     df_dim_1 = df[df["varying_d1"] == True]
     df_dim_2 = df[df["varying_d2"] == True]
@@ -97,15 +110,30 @@ def __extract_time_elapsed(df):
     shapes_dim_1 = df_dim_1["d1"].unique()
     shapes_dim_2 = df_dim_2["d2"].unique()
     shapes_dim_3 = df_dim_3["d3"].unique()
-    
-    df_dim = df_dim_1 if len(shapes_dim_1) > 0 else df_dim_2 if len(shapes_dim_2) > 0 else df_dim_3
+
+    df_dim = (
+        df_dim_1
+        if len(shapes_dim_1) > 0
+        else df_dim_2
+        if len(shapes_dim_2) > 0
+        else df_dim_3
+    )
     dim = "d1" if len(shapes_dim_1) > 0 else "d2" if len(shapes_dim_2) > 0 else "d3"
-    shapes_dim = shapes_dim_1 if len(shapes_dim_1) > 0 else shapes_dim_2 if len(shapes_dim_2) > 0 else shapes_dim_3
+    shapes_dim = (
+        shapes_dim_1
+        if len(shapes_dim_1) > 0
+        else shapes_dim_2
+        if len(shapes_dim_2) > 0
+        else shapes_dim_3
+    )
 
     df_grouped = df_dim.groupby([dim, "memory_pressure"])
-    time_elapsed_data = list(df_grouped["elapsed_time"].mean().groupby(level=0).apply(list))
-    memory_pressure_data = list(df_grouped["memory_pressure"].first().groupby(level=0).apply(list))
-
+    time_elapsed_data = list(
+        df_grouped["elapsed_time"].mean().groupby(level=0).apply(list)
+    )
+    memory_pressure_data = list(
+        df_grouped["memory_pressure"].first().groupby(level=0).apply(list)
+    )
 
     fig, ax1 = plt.subplots()
     color = "tab:red"
@@ -114,9 +142,7 @@ def __extract_time_elapsed(df):
     ax1.tick_params(axis="y", labelcolor=color)
 
     for i, time_elapsed in enumerate(time_elapsed_data[:3]):
-        memory_pressure = [
-            pressure * 100 for pressure in memory_pressure_data[:3][i]
-        ]
+        memory_pressure = [pressure * 100 for pressure in memory_pressure_data[:3][i]]
 
         ax1.plot(
             memory_pressure,
@@ -132,9 +158,7 @@ def __extract_time_elapsed(df):
     ax2.tick_params(axis="y", labelcolor=color)
 
     for i, time_elapsed in enumerate(time_elapsed_data[-3:]):
-        memory_pressure = [
-            pressure * 100 for pressure in memory_pressure_data[-3:][i]
-        ]
+        memory_pressure = [pressure * 100 for pressure in memory_pressure_data[-3:][i]]
 
         ax2.plot(
             memory_pressure,
@@ -151,7 +175,7 @@ def __extract_time_elapsed(df):
 
 
 def __extract_min_max_ratio(df):
-    experiment_dirpath = f"{args.output_dir}/{args.experiment_id}"
+    experiment_dirpath = f"{args.output_dir}/{args.execution_id}"
 
     df_dim_1 = df[df["varying_d1"] == True]
     df_dim_2 = df[df["varying_d2"] == True]
@@ -160,10 +184,22 @@ def __extract_min_max_ratio(df):
     shapes_dim_1 = df_dim_1["d1"].unique()
     shapes_dim_2 = df_dim_2["d2"].unique()
     shapes_dim_3 = df_dim_3["d3"].unique()
-    
-    df_dim = df_dim_1 if len(shapes_dim_1) > 0 else df_dim_2 if len(shapes_dim_2) > 0 else df_dim_3
+
+    df_dim = (
+        df_dim_1
+        if len(shapes_dim_1) > 0
+        else df_dim_2
+        if len(shapes_dim_2) > 0
+        else df_dim_3
+    )
     dim = "d1" if len(shapes_dim_1) > 0 else "d2" if len(shapes_dim_2) > 0 else "d3"
-    shapes_dim = shapes_dim_1 if len(shapes_dim_1) > 0 else shapes_dim_2 if len(shapes_dim_2) > 0 else shapes_dim_3
+    shapes_dim = (
+        shapes_dim_1
+        if len(shapes_dim_1) > 0
+        else shapes_dim_2
+        if len(shapes_dim_2) > 0
+        else shapes_dim_3
+    )
 
     memory_used_dim = list(df_dim.groupby(dim)["final_memory_usage_kb"].apply(list))
 
@@ -176,7 +212,6 @@ def __extract_min_max_ratio(df):
     plt.ylabel("Allowed memory pressure")
     plt.savefig(f"{experiment_dirpath}/min-max-ratio.png")
     plt.clf()
-
 
 
 if __name__ == "__main__":
@@ -194,4 +229,3 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     run(args)
- 

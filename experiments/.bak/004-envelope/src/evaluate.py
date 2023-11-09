@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 
 def run(args):
-    experiment_dirpath = f"{args.output_dir}/{args.experiment_id}"
+    experiment_dirpath = f"{args.output_dir}/{args.execution_id}"
     df = pd.read_csv(f"{experiment_dirpath}/iterations.csv")
 
     df_dim_1 = df[df["varying_d1"] == True]

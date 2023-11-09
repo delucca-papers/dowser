@@ -5,7 +5,7 @@ EXPERIMENT_NAME=
 OUTPUT_TIMESTAMP=$(date '+%Y-%m-%d_%H-%M-%S')
 OUTPUT_DIR="output/${OUTPUT_TIMESTAMP}"
 OUTPUT_MEMORY_USAGE_FILE="${OUTPUT_DIR}/memory-usage.csv"
-OUTPUT_PID_REFERENCE_FILE="${OUTPUT_DIR}/pid-reference.csv"
+OUTPUT_ROOT_PID_REFERENCE_FILE="${OUTPUT_DIR}/root-pid-reference.csv"
 
 TERMINAL_COLUMNS=$(tput cols)
 TERMINAL_DIVIDER=$(printf -- "-%.0s"  $(seq 1 ${TERMINAL_COLUMNS}))
@@ -19,7 +19,7 @@ DOCKER_SSH_KEY_PATH=
 DOCKER_UID=1000
 DOCKER_GID=984
 DOCKER_IMAGE_NAME="discovery/dowser-experiments"
-DOCKER_CONTAINER_NAME="discovery-experiment"
+DOCKER_CONTAINER_NAME="discovery-experiments"
 
 LOG_VERBOSE=false
 
@@ -34,33 +34,41 @@ function run {
     __print_summary
 }
 
+function launch_container {
+    docker rm -f ${DOCKER_CONTAINER_NAME} > /dev/null 2>&1
+    docker run \
+        --name ${DOCKER_CONTAINER_NAME} \
+        ${DOCKER_IMAGE_NAME} \
+            $@
+}
+
 function setup_observer {
-    local experiment_id
-    local experiment_root_pid
+    local execution_id
+    local execution_root_pid
     local pid_reference_file_stored
     
     while read line; do
-        if [[ -z ${experiment_id} ]]; then
-            experiment_id=$(uuidgen)
+        if [[ -z ${execution_id} ]]; then
+            execution_id=$(uuidgen)
         fi
 
-        if [[ -z ${experiment_root_pid} ]]; then
-            experiment_root_pid=$(docker top ${DOCKER_CONTAINER_NAME} | grep ${EXPERIMENT_NAME} | tail -n 1 | tr -s '[:space:]' | cut -d ' ' -f 2)
+        if [[ -z ${execution_root_pid} ]]; then
+            execution_root_pid=$(docker top ${DOCKER_CONTAINER_NAME} | grep ${EXPERIMENT_NAME} | tail -n 1 | tr -s '[:space:]' | cut -d ' ' -f 2)
         fi
         
         if [[ -z ${pid_reference_file_stored} ]]; then
-            __store_pid_reference ${experiment_id} ${experiment_root_pid}
+            __store_pid_reference ${execution_id} ${execution_root_pid}
             pid_reference_file_stored=true
         fi
              
-        echo ${experiment_id} ${experiment_root_pid} ${line}
+        echo ${execution_id} ${execution_root_pid} ${line}
     done
 }
 
 
 function observe_memory_usage_signals {
-    local experiment_id
-    local experiment_root_pid
+    local execution_id
+    local execution_root_pid
     local initial_mem_usage
     local data_mem_usage
     local computing_mem_usage
@@ -71,17 +79,17 @@ function observe_memory_usage_signals {
         __setup_memory_usage_file
     fi
     
-    while read piped_experiment_id piped_experiment_root_pid line; do
-        if [[ -z ${experiment_id} ]]; then
-            experiment_id=${piped_experiment_id}
+    while read piped_execution_id piped_execution_root_pid line; do
+        if [[ -z ${execution_id} ]]; then
+            execution_id=${piped_execution_id}
         fi
 
-        if [[ -z ${experiment_root_pid} ]]; then
-            experiment_root_pid=${piped_experiment_root_pid}
+        if [[ -z ${execution_root_pid} ]]; then
+            execution_root_pid=${piped_execution_root_pid}
         fi
 
         if [[ ${line} == *"MEM_USAGE"* ]]; then
-            read -r current_rss_mem_usage current_shared_clean_mem_usage current_shared_dirty_mem_usage current_swap_mem_usage <<< $(capture_process_tree_memory_usage ${experiment_root_pid})
+            read -r current_rss_mem_usage current_shared_clean_mem_usage current_shared_dirty_mem_usage current_swap_mem_usage <<< $(capture_process_tree_memory_usage ${execution_root_pid})
             read -r current_mem_usage <<< $(__summarize_mem_usage ${current_rss_mem_usage} ${current_shared_clean_mem_usage} ${current_shared_dirty_mem_usage} ${current_swap_mem_usage})
             
             mem_usage_log="${mem_usage_log} ${current_mem_usage}"
@@ -107,22 +115,22 @@ function observe_memory_usage_signals {
                 fi
             fi
             
-            kill -CONT ${experiment_root_pid}
+            kill -CONT ${execution_root_pid}
         fi
         
-        echo ${experiment_id} ${experiment_root_pid} ${line}
+        echo ${execution_id} ${execution_root_pid} ${line}
     done
     
-    echo "${experiment_root_pid}, ${initial_mem_usage}, ${data_mem_usage}, ${computing_mem_usage}, ${final_mem_usage}" >> ${OUTPUT_MEMORY_USAGE_FILE}
+    echo "${execution_root_pid}, ${initial_mem_usage}, ${data_mem_usage}, ${computing_mem_usage}, ${final_mem_usage}" >> ${OUTPUT_MEMORY_USAGE_FILE}
 }
 
 function handle_log {
     local setup_already_reported=false
 
-    while read experiment_id experiment_root_pid line; do
+    while read execution_id execution_root_pid line; do
         if [[ ${setup_already_reported} = false ]]; then
-            echo "Experiment ID: ${experiment_id}"
-            echo "Experiment root PID: ${experiment_root_pid}"
+            echo "Execution ID: ${execution_id}"
+            echo "Execution root PID: ${execution_root_pid}"
 
             setup_already_reported=true
         fi
@@ -149,7 +157,7 @@ function capture_process_memory_usage {
     local rss_usage=$(echo "${pid_rollup}" | grep -i "Rss" | awk '{print $2}')
     local shared_clean_usage=$(echo "${pid_rollup}" | grep -i "Shared_Clean" | awk '{print $2}')
     local shared_dirty_usage=$(echo "${pid_rollup}" | grep -i "Shared_Dirty" | awk '{print $2}')
-    local swap_usage=$(echo "${pid_rollup}" | grep -i "Swap" | awk '{print $2}')
+    local swap_usage=$(echo "${pid_rollup}" | grep -i "Swap:" | awk '{print $2}')
     
     echo ${rss_usage} ${shared_clean_usage} ${shared_dirty_usage} ${swap_usage}
 }
@@ -166,25 +174,18 @@ function __summarize_mem_usage {
 }
 
 function __setup_memory_usage_file {
-    echo "Experiment root PID, Initial memory usage, Data memory usage, Computing memory usage, Final memory usage" > ${OUTPUT_MEMORY_USAGE_FILE}
+    echo "Execution root PID, Initial memory usage, Data memory usage, Computing memory usage, Final memory usage" > ${OUTPUT_MEMORY_USAGE_FILE}
 }
 
 function __store_pid_reference {
-    if [[ ! -f ${OUTPUT_PID_REFERENCE_FILE} ]]; then
-        echo "Experiment ID, Experiment root PID" > ${OUTPUT_PID_REFERENCE_FILE}
+    if [[ ! -f ${OUTPUT_ROOT_PID_REFERENCE_FILE} ]]; then
+        echo "Execution ID, Execution root PID" > ${OUTPUT_ROOT_PID_REFERENCE_FILE}
     fi
 
-    echo "${1}, ${2}" >> ${OUTPUT_PID_REFERENCE_FILE}
+    echo "${1}, ${2}" >> ${OUTPUT_ROOT_PID_REFERENCE_FILE}
 }
 
 function __run_experiment {
-    echo "Removing past experiment containers"
-    docker rm -f ${DOCKER_CONTAINER_NAME} > /dev/null 2>&1
-
-    echo "Running experiment using image: ${DOCKER_IMAGE_NAME}"
-    echo "Container name: ${DOCKER_CONTAINER_NAME}"
-    echo ${TERMINAL_DIVIDER}
-
     source ${EXPERIMENT_NAME}/run.sh
     run_experiment $DOCKER_IMAGE_NAME $DOCKER_CONTAINER_NAME
 

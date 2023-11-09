@@ -7,19 +7,9 @@ NUM_WORKERS=3
 
 function run_experiment {
     echo "Starting smaps progression experiment"
-
-    local docker_image_name=$1
-    local docker_container_name=$2
-
-    echo "Running and collecting smaps data..."
-    docker run \
-        --name ${docker_container_name} \
-        ${docker_image_name} 001-smaps-progression.experiment \
-            ${D1} \
-            ${D2} \
-            ${D3} \
-            ${NUM_WORKERS} \
-    | setup_observer | observe_memory_usage_signals | __setup_memory_usage_wacher | handle_log
+    
+    __collect_results
+    __evaluate_results
 }
 
 function print_experiment_summary {
@@ -32,43 +22,67 @@ function print_experiment_summary {
     printf "${TABLE_FORMAT}" "Collected smaps data points" "${amount_smap_logs}"
 }
 
+function __collect_results {
+    echo "Collecting smaps data..."
+    launch_container 001-smaps-progression.experiment \
+        ${D1} \
+        ${D2} \
+        ${D3} \
+        ${NUM_WORKERS} \
+    | setup_observer | observe_memory_usage_signals | __setup_memory_usage_wacher | handle_log
+    
+    echo "Finished collecting smaps data"
+}
+
+function __evaluate_results {
+    echo ${TERMINAL_DIVIDER}
+    echo "Evaluating results..."
+    launch_container 001-smaps-progression.evaluate \
+        ${OUTPUT_DIR}
+    
+    echo "Results evaluated"
+}
+
+
 function __setup_memory_usage_wacher {
-    local experiment_root_pid
+    local execution_root_pid
     local launched_watcher
     
-    while read piped_experiment_id piped_experiment_root_pid line; do
+    while read piped_execution_id piped_execution_root_pid line; do
         if [[ -z ${launched_watcher} ]]; then
-            experiment_root_pid=${piped_experiment_root_pid}
+            execution_root_pid=${piped_execution_root_pid}
             
-            __watch_memory_usage ${experiment_root_pid} &
+            __watch_memory_usage ${execution_root_pid} &
             launched_watcher=true
         fi
 
-        echo $piped_experiment_id $piped_experiment_root_pid $line
+        echo $piped_execution_id $piped_execution_root_pid $line
     done
 }
 
 function __watch_memory_usage {
-    local experiment_root_pid=$1
+    local execution_root_pid=$1
     local interval=0.1
+    local snapshot_number=1
     
-    echo "Experiment root PID, PID, Rss, Shared_Clean, Shared_Dirty, Swap" > ${OUTPUT_SMAPS_HISTORY}
+    echo "Execution root PID, Snapshot number, PID, Process type, Rss, Shared_Clean, Shared_Dirty, Swap" > ${OUTPUT_SMAPS_HISTORY}
 
-    while ps -p ${experiment_root_pid} > /dev/null; do
-        local children_pids=$(ps -o pid --no-headers --ppid ${experiment_root_pid})
+    while ps -p ${execution_root_pid} > /dev/null; do
+        local children_pids=$(ps -o pid --no-headers --ppid ${execution_root_pid})
 
-        read -r rss shared_clean shared_dirty swap <<< $(capture_process_memory_usage ${experiment_root_pid})
+        read -r rss shared_clean shared_dirty swap <<< $(capture_process_memory_usage ${execution_root_pid})
         if [[ ! -z ${rss} ]]; then
-            echo "${experiment_root_pid}, ${experiment_root_pid}, ${rss}, ${shared_clean}, ${shared_dirty}, ${swap}" >> ${OUTPUT_SMAPS_HISTORY}
+            echo "${execution_root_pid}, ${snapshot_number}, ${execution_root_pid}, "root", ${rss}, ${shared_clean}, ${shared_dirty}, ${swap}" >> ${OUTPUT_SMAPS_HISTORY}
         fi
         
         for child_pid in ${children_pids}; do
             read -r child_rss child_shared_clean child_shared_dirty child_swap <<< $(capture_process_memory_usage ${child_pid})
             if [[ ! -z ${child_rss} ]]; then
-                echo "${experiment_root_pid}, ${child_pid}, ${child_rss}, ${child_shared_clean}, ${child_shared_dirty}, ${child_swap}" >> ${OUTPUT_SMAPS_HISTORY}
+                echo "${execution_root_pid}, ${snapshot_number}, ${child_pid}, "child", ${child_rss}, ${child_shared_clean}, ${child_shared_dirty}, ${child_swap}" >> ${OUTPUT_SMAPS_HISTORY}
             fi
         done
 
+        snapshot_number=$((snapshot_number + 1))
         sleep ${interval}
     done
 }

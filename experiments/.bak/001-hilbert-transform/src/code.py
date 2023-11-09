@@ -41,7 +41,7 @@ def run(args):
     varying_d2 = args.d2 != args.d1 and args.d2 != args.d3
     varying_d3 = args.d3 != args.d1 and args.d3 != args.d2
 
-    result_folder = os.path.join(args.output_dir, args.experiment_id)
+    result_folder = os.path.join(args.output_dir, args.execution_id)
     os.makedirs(result_folder, exist_ok=True)
     iterations_filepath = os.path.join(result_folder, "iterations.csv")
     current_iteration_df = pd.DataFrame(
