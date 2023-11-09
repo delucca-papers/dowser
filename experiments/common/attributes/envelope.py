@@ -3,4 +3,5 @@ def run(input, pipeline):
 
     quality = Envelope()
     pipeline.add(quality, X=lambda: input)
+    pipeline.add(lambda task: task.compute(), X=quality)
     pipeline.run()

@@ -1,5 +1,10 @@
 OUTPUT_SMAPS_HISTORY="${OUTPUT_DIR}/smaps-history.csv"
 
+D1=1000
+D2=1000
+D3=1000
+NUM_WORKERS=3
+
 function run_experiment {
     echo "Starting smaps progression experiment"
 
@@ -10,12 +15,20 @@ function run_experiment {
     docker run \
         --name ${docker_container_name} \
         ${docker_image_name} 001-smaps-progression.experiment \
+            ${D1} \
+            ${D2} \
+            ${D3} \
+            ${NUM_WORKERS} \
     | setup_observer | observe_memory_usage_signals | __setup_memory_usage_wacher | handle_log
 }
 
 function print_experiment_summary {
     local amount_smap_logs=$(cat ${OUTPUT_SMAPS_HISTORY} | tail -n +2 | wc -l)
 
+    printf "${TABLE_FORMAT}" "Shape of dimension 1" "${D1}"
+    printf "${TABLE_FORMAT}" "Shape of dimension 2" "${D2}"
+    printf "${TABLE_FORMAT}" "Shape of dimension 3" "${D3}"
+    printf "${TABLE_FORMAT}" "Number of workers" "${NUM_WORKERS}"
     printf "${TABLE_FORMAT}" "Collected smaps data points" "${amount_smap_logs}"
 }
 
