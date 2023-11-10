@@ -21,4 +21,4 @@ To run an experiment you can open a new shell on this folder and run the followi
 
 ## Experiments
 
-- [**001-parallel-requests**](./001-parallel-requests/README.md): This experiments evaluates the progression of the `smaps_rollup` file while running a seismic attribute with DASF.
+- [**001-smaps-progression**](./001-smaps-progression/README.md): This experiments evaluates the progression of the `smaps_rollup` file while running a seismic attribute with DASF.
