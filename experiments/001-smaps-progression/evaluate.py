@@ -4,12 +4,14 @@ import matplotlib.pyplot as plt
 
 from datetime import datetime
 
+OUTPUT_DIR = "/output"
+
 
 def run():
     plt.figure(figsize=(18, 9))
-    os.makedirs("/output/graphs", exist_ok=True)
+    os.makedirs(f"{OUTPUT_DIR}/graphs", exist_ok=True)
 
-    df_smaps = pd.read_csv("/output/smaps-history.csv")
+    df_smaps = pd.read_csv(f"{OUTPUT_DIR}/smaps-history.csv")
 
     rss_data, shared_data, swap_data = __prepare_data(df_smaps)
 
@@ -97,7 +99,7 @@ def __plot_all(rss_data, shared_data, swap_data):
     plt.xlabel("Timestamp")
     plt.ylabel("Memory consumption (kB)")
     plt.legend()
-    plt.savefig("/output/graphs/smaps-history.png")
+    plt.savefig(f"{OUTPUT_DIR}/graphs/smaps-history.png")
     plt.clf()
 
 
@@ -116,7 +118,7 @@ def __plot_only_client(rss_data, shared_data, swap_data):
     plt.xlabel("Timestamp")
     plt.ylabel("Memory consumption (kB)")
     plt.legend()
-    plt.savefig("/output/graphs/smaps-history-client.png")
+    plt.savefig(f"{OUTPUT_DIR}/graphs/smaps-history-client.png")
     plt.clf()
 
 
@@ -135,7 +137,7 @@ def __plot_only_server(rss_data, shared_data, swap_data):
     plt.xlabel("Timestamp")
     plt.ylabel("Memory consumption (kB)")
     plt.legend()
-    plt.savefig("/output/graphs/smaps-history-server.png")
+    plt.savefig(f"{OUTPUT_DIR}/graphs/smaps-history-server.png")
     plt.clf()
 
 
@@ -147,7 +149,7 @@ def __plot_only_client_rss(rss_data):
     plt.xlabel("Timestamp")
     plt.ylabel("Memory consumption (kB)")
     plt.legend()
-    plt.savefig("/output/graphs/smaps-history-client-rss.png")
+    plt.savefig(f"{OUTPUT_DIR}/graphs/smaps-history-client-rss.png")
     plt.clf()
 
 
@@ -159,7 +161,7 @@ def __plot_only_server_rss(rss_data):
     plt.xlabel("Timestamp")
     plt.ylabel("Memory consumption (kB)")
     plt.legend()
-    plt.savefig("/output/graphs/smaps-history-server-rss.png")
+    plt.savefig(f"{OUTPUT_DIR}/graphs/smaps-history-server-rss.png")
     plt.clf()
 
 
@@ -171,7 +173,7 @@ def __plot_only_server_shared(shared_data):
     plt.xlabel("Timestamp")
     plt.ylabel("Memory consumption (kB)")
     plt.legend()
-    plt.savefig("/output/graphs/smaps-history-server-shared.png")
+    plt.savefig(f"{OUTPUT_DIR}/graphs/smaps-history-server-shared.png")
     plt.clf()
 
 
@@ -183,7 +185,7 @@ def __plot_only_server_swap(swap_data):
     plt.xlabel("Timestamp")
     plt.ylabel("Memory consumption (kB)")
     plt.legend()
-    plt.savefig("/output/graphs/smaps-history-server-swap.png")
+    plt.savefig(f"{OUTPUT_DIR}/graphs/smaps-history-server-swap.png")
     plt.clf()
 
 

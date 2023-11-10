@@ -49,7 +49,7 @@ function __setup_memory_usage_wacher {
     
     while read execution_id execution_entrypoint_pid line; do
         if [[ -z ${launched_watcher} ]]; then
-            __watch_memory_usage ${execution_entrypoint_pid} &
+            __watch_memory_usage ${execution_id} ${execution_entrypoint_pid} &
             launched_watcher=true
         fi
 
@@ -58,11 +58,12 @@ function __setup_memory_usage_wacher {
 }
 
 function __watch_memory_usage {
-    local execution_entrypoint_pid=$1
+    local execution_id=$1
+    local execution_entrypoint_pid=$2
     local interval=0.1
     local history_filepath="${OUTPUT_DIR}/${OUTPUT_SMAPS_HISTORY_FILENAME}"
     
-    echo "Execution entrypoint PID, Timestamp, PID, Process type, Rss, Shared_Clean, Shared_Dirty, Swap" > ${history_filepath}
+    echo "Execution ID, Timestamp, PID, Process type, Rss, Shared_Clean, Shared_Dirty, Swap" > ${history_filepath}
 
     while ps -p ${execution_entrypoint_pid} > /dev/null; do
         local children_pids=$(ps -o pid --no-headers --ppid ${execution_entrypoint_pid})
@@ -70,13 +71,13 @@ function __watch_memory_usage {
         timestamp=$(get_timestamp)
         read -r rss shared_clean shared_dirty swap <<< $(capture_process_memory_usage ${execution_entrypoint_pid})
         if [[ ! -z ${rss} ]]; then
-            echo "${execution_entrypoint_pid}, ${timestamp}, ${execution_entrypoint_pid}, "client", ${rss}, ${shared_clean}, ${shared_dirty}, ${swap}" >> ${history_filepath}
+            echo "${execution_id}, ${timestamp}, ${execution_entrypoint_pid}, "client", ${rss}, ${shared_clean}, ${shared_dirty}, ${swap}" >> ${history_filepath}
         fi
         
         for child_pid in ${children_pids}; do
             read -r child_rss child_shared_clean child_shared_dirty child_swap <<< $(capture_process_memory_usage ${child_pid})
             if [[ ! -z ${child_rss} ]]; then
-                echo "${execution_entrypoint_pid}, ${timestamp}, ${child_pid}, "server", ${child_rss}, ${child_shared_clean}, ${child_shared_dirty}, ${child_swap}" >> ${history_filepath}
+                echo "${execution_id}, ${timestamp}, ${child_pid}, "server", ${child_rss}, ${child_shared_clean}, ${child_shared_dirty}, ${child_swap}" >> ${history_filepath}
             fi
         done
 

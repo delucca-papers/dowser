@@ -70,14 +70,13 @@ function setup_observer {
 
 function observe_memory_usage_signals {
     local execution_id
-    local execution_entrypoint_pid
     local initial_mem_usage
     local data_mem_usage
     local computing_mem_usage
     local final_mem_usage
     local mem_usage_log
     
-    if [[ ! -f ${OUTPUT_MEMORY_USAGE_FILE} ]]; then
+    if [[ ! -f "${OUTPUT_DIR}/${OUTPUT_MEMORY_USAGE_FILENAME}" ]]; then
         __setup_memory_usage_file
     fi
     
@@ -86,12 +85,8 @@ function observe_memory_usage_signals {
             execution_id=${piped_execution_id}
         fi
 
-        if [[ -z ${execution_entrypoint_pid} ]]; then
-            execution_entrypoint_pid=${piped_execution_entrypoint_pid}
-        fi
-
         if [[ ${line} == *"MEM_USAGE"* ]]; then
-            read -r current_rss_mem_usage current_shared_clean_mem_usage current_shared_dirty_mem_usage current_swap_mem_usage <<< $(capture_process_tree_memory_usage ${execution_entrypoint_pid})
+            read -r current_rss_mem_usage current_shared_clean_mem_usage current_shared_dirty_mem_usage current_swap_mem_usage <<< $(capture_process_tree_memory_usage ${piped_execution_entrypoint_pid})
             read -r current_mem_usage <<< $(__summarize_mem_usage ${current_rss_mem_usage} ${current_shared_clean_mem_usage} ${current_shared_dirty_mem_usage} ${current_swap_mem_usage})
             
             mem_usage_log="${mem_usage_log} ${current_mem_usage}"
@@ -117,13 +112,13 @@ function observe_memory_usage_signals {
                 fi
             fi
             
-            kill -CONT ${execution_entrypoint_pid}
+            kill -CONT ${piped_execution_entrypoint_pid}
         fi
         
-        echo ${execution_id} ${execution_entrypoint_pid} ${line}
+        echo ${piped_execution_id} ${piped_execution_entrypoint_pid} ${line}
     done
     
-    echo "${execution_entrypoint_pid}, ${initial_mem_usage}, ${data_mem_usage}, ${computing_mem_usage}, ${final_mem_usage}" >> "${OUTPUT_DIR}/${OUTPUT_MEMORY_USAGE_FILENAME}"
+    echo "${execution_id}, ${initial_mem_usage}, ${data_mem_usage}, ${computing_mem_usage}, ${final_mem_usage}" >> "${OUTPUT_DIR}/${OUTPUT_MEMORY_USAGE_FILENAME}"
 }
 
 function handle_log {
@@ -180,7 +175,7 @@ function __summarize_mem_usage {
 }
 
 function __setup_memory_usage_file {
-    echo "Execution entrypoint PID, Initial memory usage, Data memory usage, Computing memory usage, Final memory usage" > "${OUTPUT_DIR}/${OUTPUT_MEMORY_USAGE_FILENAME}"
+    echo "Execution ID, Initial memory usage, Data memory usage, Computing memory usage, Final memory usage" > "${OUTPUT_DIR}/${OUTPUT_MEMORY_USAGE_FILENAME}"
 }
 
 function __store_pid_reference {
