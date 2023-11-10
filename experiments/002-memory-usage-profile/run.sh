@@ -12,7 +12,7 @@ function run_experiment {
     echo "Starting memory usage profile experiment"
     
     __collect_results
-    # __evaluate_results
+    __evaluate_results
 }
 
 function print_experiment_summary {
