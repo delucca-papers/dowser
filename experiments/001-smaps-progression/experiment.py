@@ -9,11 +9,9 @@ def run(d1: int, d2: int, d3: int, n_workers: int):
     input = data.generate(d1, d2, d3)
     report.wait_for_signal(constants.CAPTURE_DATA_MEMORY_USAGE)
 
-    from common.cluster import build_pipeline
     from common.attributes import envelope
 
-    pipeline = build_pipeline(n_workers)
-    envelope.run(input, pipeline)
+    envelope.run(input, n_workers)
     report.wait_for_signal(constants.CAPTURE_COMPUTING_MEMORY_USAGE)
 
 
