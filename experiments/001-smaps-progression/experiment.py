@@ -11,7 +11,7 @@ def run(d1: int, d2: int, d3: int, n_workers: int):
 
     from common.attributes import envelope
 
-    envelope.run(input, n_workers)
+    envelope.run(input, n_workers=n_workers)
     report.wait_for_signal(constants.CAPTURE_COMPUTING_MEMORY_USAGE)
 
 

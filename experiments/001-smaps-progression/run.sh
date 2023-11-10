@@ -53,7 +53,7 @@ function __setup_memory_usage_wacher {
             launched_watcher=true
         fi
 
-        echo $execution_id $execution_entrypoint_pid $line
+        echo ${execution_id} ${execution_entrypoint_pid} ${line}
     done
 }
 

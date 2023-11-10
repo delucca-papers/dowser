@@ -1,4 +1,4 @@
-def run_attribute(attribute, input, n_workers, single_threaded):
+def run_attribute(attribute, input, n_workers=1, single_threaded=False):
     return (
         __run_single_threaded(attribute, input)
         if single_threaded
