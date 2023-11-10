@@ -1,7 +1,7 @@
 def run(input, pipeline):
-    from dasf_seismic.attributes.complex_trace import Envelope
+    from dasf_seismic.attributes.edge_detection import Semblance
 
-    quality = Envelope()
+    quality = Semblance()
     pipeline.add(quality, X=lambda: input)
     pipeline.run()
 

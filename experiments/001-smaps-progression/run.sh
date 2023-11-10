@@ -3,7 +3,7 @@ OUTPUT_SMAPS_HISTORY_FILENAME="smaps-history.csv"
 
 D1=1000
 D2=1000
-D3=1000
+D3=100
 NUM_WORKERS=3
 
 function run_experiment {

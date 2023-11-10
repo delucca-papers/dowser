@@ -53,7 +53,7 @@ def __prepare_data(df_smaps):
         row_shared_data = (
             [shared]
             if row_key not in shared_data
-            else rss_data[row_key]["data"] + [shared]
+            else shared_data[row_key]["data"] + [shared]
         )
 
         row_swap_timestamps = (
@@ -62,7 +62,7 @@ def __prepare_data(df_smaps):
             else swap_data[row_key]["timestamps"] + [timestamp]
         )
         row_swap_data = (
-            [swap] if row_key not in swap_data else rss_data[row_key]["data"] + [swap]
+            [swap] if row_key not in swap_data else swap_data[row_key]["data"] + [swap]
         )
 
         if row_key not in rss_data:
@@ -94,7 +94,7 @@ def __plot_all(rss_data, shared_data, swap_data):
         for key, value in data:
             plt.plot(value["timestamps"], value["data"], label=f"{key}_{label}")
 
-    plt.xlabel("Snapshot")
+    plt.xlabel("Timestamp")
     plt.ylabel("Memory consumption (kB)")
     plt.legend()
     plt.savefig("/output/graphs/smaps-history.png")
@@ -113,7 +113,7 @@ def __plot_only_client(rss_data, shared_data, swap_data):
             if key == "client":
                 plt.plot(value["timestamps"], value["data"], label=f"{key}_{label}")
 
-    plt.xlabel("Snapshot")
+    plt.xlabel("Timestamp")
     plt.ylabel("Memory consumption (kB)")
     plt.legend()
     plt.savefig("/output/graphs/smaps-history-client.png")
@@ -132,7 +132,7 @@ def __plot_only_server(rss_data, shared_data, swap_data):
             if key != "client":
                 plt.plot(value["timestamps"], value["data"], label=f"{key}_{label}")
 
-    plt.xlabel("Snapshot")
+    plt.xlabel("Timestamp")
     plt.ylabel("Memory consumption (kB)")
     plt.legend()
     plt.savefig("/output/graphs/smaps-history-server.png")
@@ -144,7 +144,7 @@ def __plot_only_client_rss(rss_data):
         if key == "client":
             plt.plot(value["timestamps"], value["data"], label=key)
 
-    plt.xlabel("Snapshot")
+    plt.xlabel("Timestamp")
     plt.ylabel("Memory consumption (kB)")
     plt.legend()
     plt.savefig("/output/graphs/smaps-history-client-rss.png")
@@ -156,7 +156,7 @@ def __plot_only_server_rss(rss_data):
         if key != "client":
             plt.plot(value["timestamps"], value["data"], label=key)
 
-    plt.xlabel("Snapshot")
+    plt.xlabel("Timestamp")
     plt.ylabel("Memory consumption (kB)")
     plt.legend()
     plt.savefig("/output/graphs/smaps-history-server-rss.png")
@@ -168,7 +168,7 @@ def __plot_only_server_shared(shared_data):
         if key != "client":
             plt.plot(value["timestamps"], value["data"], label=key)
 
-    plt.xlabel("Snapshot")
+    plt.xlabel("Timestamp")
     plt.ylabel("Memory consumption (kB)")
     plt.legend()
     plt.savefig("/output/graphs/smaps-history-server-shared.png")
@@ -180,7 +180,7 @@ def __plot_only_server_swap(swap_data):
         if key != "client":
             plt.plot(value["timestamps"], value["data"], label=key)
 
-    plt.xlabel("Snapshot")
+    plt.xlabel("Timestamp")
     plt.ylabel("Memory consumption (kB)")
     plt.legend()
     plt.savefig("/output/graphs/smaps-history-server-swap.png")

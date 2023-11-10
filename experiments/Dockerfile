@@ -41,6 +41,7 @@ RUN mkdir ${HOME}/.ssh/ && \
 
 COPY --chown=${UID}:${GID} common ${BASEDIR}/common
 COPY --chown=${UID}:${GID} 001-smaps-progression ${BASEDIR}/001-smaps-progression
+COPY --chown=${UID}:${GID} 002-memory-usage-profile ${BASEDIR}/002-memory-usage-profile
 
 ENV PYTHONPATH "${PYTHONPATH}:${BASEDIR}"
 

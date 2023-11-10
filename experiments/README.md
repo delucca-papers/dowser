@@ -21,4 +21,5 @@ To run an experiment you can open a new shell on this folder and run the followi
 
 ## Experiments
 
-- [**001-smaps-progression**](./001-smaps-progression/README.md): This experiments evaluates the progression of the `smaps_rollup` file while running a seismic attribute with DASF.
+- [**001-smaps-progression**](./001-smaps-progression/README.md): This experiments evaluates the progression of the `smaps_rollup` file while running a seismic attribute with DASF;
+- [**002-memory-usage-profile**](./002-memory-usage-profile/): This experiment aims to evaluate the memory usage profile of all seismic attributes.
