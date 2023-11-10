@@ -6,7 +6,7 @@ BASE_DIR=$(cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd)
 OUTPUT_TIMESTAMP=$(date '+%Y-%m-%d_%H-%M-%S')
 OUTPUT_DIR="output/${OUTPUT_TIMESTAMP}"
 OUTPUT_MEMORY_USAGE_FILENAME="memory-usage.csv"
-OUTPUT_ROOT_PID_REFERENCE_FILENAME="root-pid-reference.csv"
+OUTPUT_ENTRYPOINT_PID_REFERENCE_FILENAME="entrypoint-pid-reference.csv"
 
 TERMINAL_COLUMNS=$(tput cols)
 TERMINAL_DIVIDER=$(printf -- "-%.0s"  $(seq 1 ${TERMINAL_COLUMNS}))
@@ -46,7 +46,7 @@ function launch_container {
 
 function setup_observer {
     local execution_id
-    local execution_root_pid
+    local execution_entrypoint_pid
     local pid_reference_file_stored
     
     while read line; do
@@ -54,23 +54,23 @@ function setup_observer {
             execution_id=$(uuidgen)
         fi
 
-        if [[ -z ${execution_root_pid} ]]; then
-            execution_root_pid=$(docker top ${DOCKER_CONTAINER_NAME} | grep ${EXPERIMENT_NAME} | tail -n 1 | tr -s '[:space:]' | cut -d ' ' -f 2)
+        if [[ -z ${execution_entrypoint_pid} ]]; then
+            execution_entrypoint_pid=$(docker top ${DOCKER_CONTAINER_NAME} | grep ${EXPERIMENT_NAME} | tail -n 1 | tr -s '[:space:]' | cut -d ' ' -f 2)
         fi
         
         if [[ -z ${pid_reference_file_stored} ]]; then
-            __store_pid_reference ${execution_id} ${execution_root_pid}
+            __store_pid_reference ${execution_id} ${execution_entrypoint_pid}
             pid_reference_file_stored=true
         fi
              
-        echo ${execution_id} ${execution_root_pid} ${line}
+        echo ${execution_id} ${execution_entrypoint_pid} ${line}
     done
 }
 
 
 function observe_memory_usage_signals {
     local execution_id
-    local execution_root_pid
+    local execution_entrypoint_pid
     local initial_mem_usage
     local data_mem_usage
     local computing_mem_usage
@@ -81,17 +81,17 @@ function observe_memory_usage_signals {
         __setup_memory_usage_file
     fi
     
-    while read piped_execution_id piped_execution_root_pid line; do
+    while read piped_execution_id piped_execution_entrypoint_pid line; do
         if [[ -z ${execution_id} ]]; then
             execution_id=${piped_execution_id}
         fi
 
-        if [[ -z ${execution_root_pid} ]]; then
-            execution_root_pid=${piped_execution_root_pid}
+        if [[ -z ${execution_entrypoint_pid} ]]; then
+            execution_entrypoint_pid=${piped_execution_entrypoint_pid}
         fi
 
         if [[ ${line} == *"MEM_USAGE"* ]]; then
-            read -r current_rss_mem_usage current_shared_clean_mem_usage current_shared_dirty_mem_usage current_swap_mem_usage <<< $(capture_process_tree_memory_usage ${execution_root_pid})
+            read -r current_rss_mem_usage current_shared_clean_mem_usage current_shared_dirty_mem_usage current_swap_mem_usage <<< $(capture_process_tree_memory_usage ${execution_entrypoint_pid})
             read -r current_mem_usage <<< $(__summarize_mem_usage ${current_rss_mem_usage} ${current_shared_clean_mem_usage} ${current_shared_dirty_mem_usage} ${current_swap_mem_usage})
             
             mem_usage_log="${mem_usage_log} ${current_mem_usage}"
@@ -117,22 +117,22 @@ function observe_memory_usage_signals {
                 fi
             fi
             
-            kill -CONT ${execution_root_pid}
+            kill -CONT ${execution_entrypoint_pid}
         fi
         
-        echo ${execution_id} ${execution_root_pid} ${line}
+        echo ${execution_id} ${execution_entrypoint_pid} ${line}
     done
     
-    echo "${execution_root_pid}, ${initial_mem_usage}, ${data_mem_usage}, ${computing_mem_usage}, ${final_mem_usage}" >> ${OUTPUT_MEMORY_USAGE_FILE}
+    echo "${execution_entrypoint_pid}, ${initial_mem_usage}, ${data_mem_usage}, ${computing_mem_usage}, ${final_mem_usage}" >> "${OUTPUT_DIR}/${OUTPUT_MEMORY_USAGE_FILENAME}"
 }
 
 function handle_log {
     local setup_already_reported=false
 
-    while read execution_id execution_root_pid line; do
+    while read execution_id execution_entrypoint_pid line; do
         if [[ ${setup_already_reported} = false ]]; then
             echo "Execution ID: ${execution_id}"
-            echo "Execution root PID: ${execution_root_pid}"
+            echo "Execution entrypoint PID: ${execution_entrypoint_pid}"
 
             setup_already_reported=true
         fi
@@ -144,10 +144,10 @@ function handle_log {
 }
 
 function capture_process_tree_memory_usage {
-    local root_pid=${1}
-    local children_pids=$(ps -o pid --no-headers --ppid ${root_pid})
+    local parent_pid=${1}
+    local children_pids=$(ps -o pid --no-headers --ppid ${parent_pid})
 
-    read -r rss shared_clean shared_dirty swap <<< $(capture_process_memory_usage ${root_pid})
+    read -r rss shared_clean shared_dirty swap <<< $(capture_process_memory_usage ${parent_pid})
     # TODO - Como vamos somar os processos filhos?
     
     echo ${rss} ${shared_clean} ${shared_dirty} ${swap}
@@ -164,6 +164,10 @@ function capture_process_memory_usage {
     echo ${rss_usage} ${shared_clean_usage} ${shared_dirty_usage} ${swap_usage}
 }
 
+function get_timestamp {
+    echo $(date +%s)
+}
+
 function __summarize_mem_usage {
     local rss_usage=$1
     local shared_clean_usage=$2
@@ -176,14 +180,14 @@ function __summarize_mem_usage {
 }
 
 function __setup_memory_usage_file {
-    echo "Execution root PID, Initial memory usage, Data memory usage, Computing memory usage, Final memory usage" > "${OUTPUT_DIR}/${OUTPUT_MEMORY_USAGE_FILENAME}"
+    echo "Execution entrypoint PID, Initial memory usage, Data memory usage, Computing memory usage, Final memory usage" > "${OUTPUT_DIR}/${OUTPUT_MEMORY_USAGE_FILENAME}"
 }
 
 function __store_pid_reference {
-    local reference_filepath="${OUTPUT_DIR}/${OUTPUT_ROOT_PID_REFERENCE_FILENAME}"
+    local reference_filepath="${OUTPUT_DIR}/${OUTPUT_ENTRYPOINT_PID_REFERENCE_FILENAME}"
 
     if [[ ! -f ${reference_filepath} ]]; then
-        echo "Execution ID, Execution root PID" > ${reference_filepath}
+        echo "Execution ID, Execution entrypoint PID" > ${reference_filepath}
     fi
 
     echo "${1}, ${2}" >> ${reference_filepath}

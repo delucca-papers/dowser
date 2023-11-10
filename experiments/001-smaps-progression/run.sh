@@ -45,41 +45,38 @@ function __evaluate_results {
 
 
 function __setup_memory_usage_wacher {
-    local execution_root_pid
     local launched_watcher
     
-    while read piped_execution_id piped_execution_root_pid line; do
+    while read execution_id execution_entrypoint_pid line; do
         if [[ -z ${launched_watcher} ]]; then
-            execution_root_pid=${piped_execution_root_pid}
-            
-            __watch_memory_usage ${execution_root_pid} &
+            __watch_memory_usage ${execution_entrypoint_pid} &
             launched_watcher=true
         fi
 
-        echo $piped_execution_id $piped_execution_root_pid $line
+        echo $execution_id $execution_entrypoint_pid $line
     done
 }
 
 function __watch_memory_usage {
-    local execution_root_pid=$1
+    local execution_entrypoint_pid=$1
     local interval=0.1
-    local snapshot_number=1
     local history_filepath="${OUTPUT_DIR}/${OUTPUT_SMAPS_HISTORY_FILENAME}"
     
-    echo "Execution root PID, Snapshot number, PID, Process type, Rss, Shared_Clean, Shared_Dirty, Swap" > ${history_filepath}
+    echo "Execution entrypoint PID, Timestamp, PID, Process type, Rss, Shared_Clean, Shared_Dirty, Swap" > ${history_filepath}
 
-    while ps -p ${execution_root_pid} > /dev/null; do
-        local children_pids=$(ps -o pid --no-headers --ppid ${execution_root_pid})
+    while ps -p ${execution_entrypoint_pid} > /dev/null; do
+        local children_pids=$(ps -o pid --no-headers --ppid ${execution_entrypoint_pid})
 
-        read -r rss shared_clean shared_dirty swap <<< $(capture_process_memory_usage ${execution_root_pid})
+        timestamp=$(get_timestamp)
+        read -r rss shared_clean shared_dirty swap <<< $(capture_process_memory_usage ${execution_entrypoint_pid})
         if [[ ! -z ${rss} ]]; then
-            echo "${execution_root_pid}, ${snapshot_number}, ${execution_root_pid}, "root", ${rss}, ${shared_clean}, ${shared_dirty}, ${swap}" >> ${history_filepath}
+            echo "${execution_entrypoint_pid}, ${timestamp}, ${execution_entrypoint_pid}, "client", ${rss}, ${shared_clean}, ${shared_dirty}, ${swap}" >> ${history_filepath}
         fi
         
         for child_pid in ${children_pids}; do
             read -r child_rss child_shared_clean child_shared_dirty child_swap <<< $(capture_process_memory_usage ${child_pid})
             if [[ ! -z ${child_rss} ]]; then
-                echo "${execution_root_pid}, ${snapshot_number}, ${child_pid}, "child", ${child_rss}, ${child_shared_clean}, ${child_shared_dirty}, ${child_swap}" >> ${history_filepath}
+                echo "${execution_entrypoint_pid}, ${timestamp}, ${child_pid}, "server", ${child_rss}, ${child_shared_clean}, ${child_shared_dirty}, ${child_swap}" >> ${history_filepath}
             fi
         done
 
