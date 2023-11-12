@@ -3,10 +3,14 @@ OUTPUT_EXECUTION_INPUT_PARAMETERS_REFERENCE_FILENAME="execution-input-parameters
 
 D2=100
 D3=100
-NUM_SAMPLES=35
+NUM_SAMPLES=2
+#NUM_SAMPLES=5
+#NUM_SAMPLES=35
 SHAPE_BASE_SIZE=200
 SHAPE_STEP_SIZE=200
-SHAPE_LIMIT_SIZE=5000
+SHAPE_LIMIT_SIZE=400
+#SHAPE_LIMIT_SIZE=5000
+#SHAPE_LIMIT_SIZE=10000
 
 function run_experiment {
     echo "Starting memory usage profile experiment"
@@ -26,14 +30,27 @@ function print_experiment_summary {
 
 function __collect_results {
     local attributes="envelope semblance"
+    #local attributes="envelope semblance gst3d"
     local shapes=$(for i in `seq ${SHAPE_BASE_SIZE} ${SHAPE_STEP_SIZE} ${SHAPE_LIMIT_SIZE}`; do echo $i; done)
+    local iterations_total=$(($(echo ${shapes} | wc -w) * ${NUM_SAMPLES}))
     
     for attribute in ${attributes}; do
+        echo "Collecting data for attribute ${attribute}"
+
+        local current_iteration=1
+
         for shape in ${shapes}; do
             for i in `seq 1 ${NUM_SAMPLES}`; do
+                local percentage=$((100 * ${current_iteration} / ${iterations_total}))
+                progress_bar ${percentage}
                 __collect_sample_results ${attribute} ${shape} ${i}
+
+                current_iteration=$((${current_iteration} + 1))
             done
         done
+        
+        echo
+        echo ${TERMINAL_DIVIDER}
     done
     
     echo "Finished collecting data"
@@ -44,15 +61,12 @@ function __collect_sample_results {
     local shape=$2
     local iteration_number=$3
 
-    echo "Collecting results for attribute ${attribute} using shape ${shape}. Iteration number ${iteration_number}..."
     launch_container 002-memory-usage-profile.experiment \
         ${shape} \
         ${D2} \
         ${D3} \
         ${attribute} \
     | setup_observer | __setup_input_parameters_reference_file | observe_memory_usage_signals | handle_log
-    
-    echo ${TERMINAL_DIVIDER}
 }
 
 function __setup_input_parameters_reference_file {

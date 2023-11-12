@@ -35,6 +35,20 @@ function run {
     __print_summary
 }
 
+function progress_bar {
+    local progress=$1
+    local percentage_characters=$((${#progress} + 6))
+    local available_space=$((${TERMINAL_COLUMNS} - ${percentage_characters}))
+    local progress_space=$((${progress} * ${available_space} / 100))
+    local empty_space=$((${available_space} - ${progress_space}))
+    local progress_seq=$(seq 1 ${progress_space})
+    local empty_seq=$(seq 1 ${empty_space})
+    local progress_bar=$(printf "#%.0s"  ${progress_seq})
+    local empty_bar=$(printf " %.0s"  ${empty_seq})
+    
+    echo -ne "[${progress_bar}${empty_bar}] (${progress}%)\r"
+}
+
 function launch_container {
     docker rm -f ${DOCKER_CONTAINER_NAME} > /dev/null 2>&1
     docker run \
@@ -125,14 +139,14 @@ function handle_log {
     local setup_already_reported=false
 
     while read execution_id execution_entrypoint_pid line; do
-        if [[ ${setup_already_reported} = false ]]; then
-            echo "Execution ID: ${execution_id}"
-            echo "Execution entrypoint PID: ${execution_entrypoint_pid}"
-
-            setup_already_reported=true
-        fi
-
         if [[ ${LOG_VERBOSE} = true ]]; then
+            if [[ ${setup_already_reported} = false ]]; then
+                echo "Execution ID: ${execution_id}"
+                echo "Execution entrypoint PID: ${execution_entrypoint_pid}"
+
+                setup_already_reported=true
+            fi
+
             echo ${line}
         fi
     done
@@ -161,6 +175,20 @@ function capture_process_memory_usage {
 
 function get_timestamp {
     echo $(date +%s)
+}
+
+function progress_bar {
+    local progress=$1
+    local percentage_characters=$((${#progress} + 7))
+    local available_space=$((${TERMINAL_COLUMNS} - ${percentage_characters}))
+    local progress_space=$((${progress} * ${available_space} / 100))
+    local empty_space=$((${available_space} - ${progress_space}))
+    local progress_seq=$(seq 1 ${progress_space})
+    local empty_seq=$(seq 1 ${empty_space})
+    local progress_bar=$(printf "#%.0s"  ${progress_seq})
+    local empty_bar=$(printf " %.0s"  ${empty_seq})
+    
+    echo -ne "[${progress_bar}${empty_bar}] (${progress}%)\r"
 }
 
 function __summarize_mem_usage {
