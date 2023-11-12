@@ -188,6 +188,10 @@ function progress_bar {
     local progress_bar=$(printf "#%.0s"  ${progress_seq})
     local empty_bar=$(printf " %.0s"  ${empty_seq})
     
+    if [ "${progress}" -eq "0" ]; then
+        unset progress_bar
+    fi
+    
     echo -ne "[${progress_bar}${empty_bar}] (${progress}%)\r"
 }
 
