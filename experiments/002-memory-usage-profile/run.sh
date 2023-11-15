@@ -1,13 +1,15 @@
 OUTPUT_DIR="002-memory-usage-profile/output/${OUTPUT_TIMESTAMP}"
 OUTPUT_EXECUTION_INPUT_PARAMETERS_REFERENCE_FILENAME="execution-input-parameters-reference.csv"
 
-D2=100
-D3=100
+D2=10
+D3=10
 NUM_SAMPLES=1
 #NUM_SAMPLES=35
-SHAPE_BASE_SIZE=200
-SHAPE_STEP_SIZE=200
-SHAPE_LIMIT_SIZE=200
+SHAPE_BASE_SIZE=10
+#SHAPE_BASE_SIZE=200
+SHAPE_STEP_SIZE=10
+#SHAPE_STEP_SIZE=200
+SHAPE_LIMIT_SIZE=10
 #SHAPE_LIMIT_SIZE=10000
 
 function run_experiment {
@@ -36,7 +38,7 @@ function __collect_results {
     for attribute in ${attributes}; do
         for shape in ${shapes}; do
             for i in `seq 1 ${NUM_SAMPLES}`; do
-                progress_bar ${current_iteration} ${iterations_total} "computing attribute ${attribute} using shape (${shape}, 100, 100)"
+                progress_bar ${current_iteration} ${iterations_total} "computing attribute ${attribute} using shape (${shape}, ${D2}, ${D3})"
                 __collect_sample_results ${attribute} ${shape} ${i}
 
                 current_iteration=$((${current_iteration} + 1))
