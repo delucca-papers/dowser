@@ -3,11 +3,11 @@ OUTPUT_EXECUTION_INPUT_PARAMETERS_REFERENCE_FILENAME="execution-input-parameters
 
 D2=100
 D3=100
-NUM_SAMPLES=5
+NUM_SAMPLES=1
 #NUM_SAMPLES=35
 SHAPE_BASE_SIZE=200
 SHAPE_STEP_SIZE=200
-SHAPE_LIMIT_SIZE=5000
+SHAPE_LIMIT_SIZE=200
 #SHAPE_LIMIT_SIZE=10000
 
 function run_experiment {
@@ -27,27 +27,21 @@ function print_experiment_summary {
 }
 
 function __collect_results {
-    local attributes="envelope semblance gst3d"
+    local attributes=$(ls "${BASE_DIR}/common/attributes" | sed s"/.py//g")
+    attributes="new"
     local shapes=$(for i in `seq ${SHAPE_BASE_SIZE} ${SHAPE_STEP_SIZE} ${SHAPE_LIMIT_SIZE}`; do echo $i; done)
-    local iterations_total=$(($(echo ${shapes} | wc -w) * ${NUM_SAMPLES}))
+    local iterations_total=$(($(echo ${shapes} | wc -w) * ${NUM_SAMPLES} * $(echo ${attributes} | wc -w)))
+    local current_iteration=1
     
     for attribute in ${attributes}; do
-        echo "Collecting data for attribute ${attribute}"
-
-        local current_iteration=1
-
         for shape in ${shapes}; do
             for i in `seq 1 ${NUM_SAMPLES}`; do
-                local percentage=$((100 * ${current_iteration} / ${iterations_total}))
-                progress_bar ${percentage}
+                progress_bar ${current_iteration} ${iterations_total} "computing attribute ${attribute} using shape (${shape}, 100, 100)"
                 __collect_sample_results ${attribute} ${shape} ${i}
 
                 current_iteration=$((${current_iteration} + 1))
             done
         done
-        
-        echo
-        echo ${TERMINAL_DIVIDER}
     done
     
     echo "Finished collecting data"

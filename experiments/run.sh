@@ -35,20 +35,6 @@ function run {
     __print_summary
 }
 
-function progress_bar {
-    local progress=$1
-    local percentage_characters=$((${#progress} + 6))
-    local available_space=$((${TERMINAL_COLUMNS} - ${percentage_characters}))
-    local progress_space=$((${progress} * ${available_space} / 100))
-    local empty_space=$((${available_space} - ${progress_space}))
-    local progress_seq=$(seq 1 ${progress_space})
-    local empty_seq=$(seq 1 ${empty_space})
-    local progress_bar=$(printf "#%.0s"  ${progress_seq})
-    local empty_bar=$(printf " %.0s"  ${empty_seq})
-    
-    echo -ne "[${progress_bar}${empty_bar}] (${progress}%)\r"
-}
-
 function launch_container {
     docker rm -f ${DOCKER_CONTAINER_NAME} > /dev/null 2>&1
     docker run \
@@ -178,21 +164,35 @@ function get_timestamp {
 }
 
 function progress_bar {
-    local progress=$1
-    local percentage_characters=$((${#progress} + 7))
+    local current_iteration=$1
+    local iterations_total=$2
+    local description=${@:3}
+
+    local percentage=$((100 * ${current_iteration} / ${iterations_total}))
+    local percentage_characters=$((${#percentage} + 7))
     local available_space=$((${TERMINAL_COLUMNS} - ${percentage_characters}))
-    local progress_space=$((${progress} * ${available_space} / 100))
-    local empty_space=$((${available_space} - ${progress_space}))
-    local progress_seq=$(seq 1 ${progress_space})
+    local percentage_space=$((${percentage} * ${available_space} / 100))
+    local empty_space=$((${available_space} - ${percentage_space}))
+    local percentage_seq=$(seq 1 ${percentage_space})
     local empty_seq=$(seq 1 ${empty_space})
-    local progress_bar=$(printf "#%.0s"  ${progress_seq})
+    local percentage_bar=$(printf "#%.0s"  ${percentage_seq})
     local empty_bar=$(printf " %.0s"  ${empty_seq})
+    local bar_span="  "; if [ "${percentage}" -eq "100" ]; then bar_span=" "; fi
     
-    if [ "${progress}" -eq "0" ]; then
+    local description_header="Executing task: ${description}"
+    local description_status="Iteration ${current_iteration} of ${iterations_total}"
+    local description_space=$((${TERMINAL_COLUMNS} - ${#description_header} - ${#description_status}))
+    
+    if [ "${percentage}" -eq "0" ]; then
         unset progress_bar
     fi
-    
-    echo -ne "[${progress_bar}${empty_bar}] (${progress}%)\r"
+ 
+    echo -e "${description_header}$(printf ' %.0s' $(seq 1 ${description_space}))${description_status}"
+    echo -e "[${percentage_bar}${empty_bar}]${bar_span}(${percentage}%)\r"
+
+    if [ ! "${percentage}" -eq "100" ]; then
+        tput cuu1 && tput cuu1
+    fi
 }
 
 function __summarize_mem_usage {

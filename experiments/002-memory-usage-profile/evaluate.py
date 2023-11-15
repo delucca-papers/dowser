@@ -3,10 +3,11 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 OUTPUT_DIR = "/output"
+FIGURE_SIZE = (9, 9)
 
 
 def run():
-    plt.figure(figsize=(18, 9))
+    plt.figure(figsize=FIGURE_SIZE)
     os.makedirs(f"{OUTPUT_DIR}/graphs", exist_ok=True)
 
     df = __build_dataframe()
