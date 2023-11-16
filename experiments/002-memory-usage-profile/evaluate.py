@@ -1,19 +1,17 @@
 import os
+import sys
 import pandas as pd
 import matplotlib.pyplot as plt
 
-OUTPUT_DIR = "/output"
-FIGURE_SIZE = (9, 9)
 
+def run(output_dir):
+    os.makedirs(f"{output_dir}/graphs", exist_ok=True)
 
-def run():
-    plt.figure(figsize=FIGURE_SIZE)
-    os.makedirs(f"{OUTPUT_DIR}/graphs", exist_ok=True)
-
-    df = __build_dataframe()
+    df = __build_dataframe(output_dir)
     data = __prepare_data(df)
 
-    __plot_all(data)
+    __save_summary(df, output_dir)
+    __plot_all(data, output_dir)
 
 
 def __prepare_data(df):
@@ -33,22 +31,26 @@ def __prepare_data(df):
     return data
 
 
-def __plot_all(data):
+def __plot_all(data, output_dir):
     for key, value in data.items():
         plt.plot(value["shapes"], value["memory_usage"], label=key)
 
     plt.xlabel("Shape")
     plt.ylabel("Memory consumption (kB)")
     plt.legend()
-    plt.savefig(f"{OUTPUT_DIR}/graphs/overview.png")
+    plt.savefig(f"{output_dir}/graphs/overview.png")
     plt.clf()
 
 
-def __build_dataframe():
+def __save_summary(df, output_dir):
+    df.to_csv(f"{output_dir}/summary.csv")
+
+
+def __build_dataframe(output_dir):
     df_input_attributes = pd.read_csv(
-        f"{OUTPUT_DIR}/execution-input-parameters-reference.csv"
+        f"{output_dir}/execution-input-parameters-reference.csv"
     )
-    df_memory_usage = pd.read_csv(f"{OUTPUT_DIR}/memory-usage.csv")
+    df_memory_usage = pd.read_csv(f"{output_dir}/memory-usage.csv")
 
     df = pd.merge(df_memory_usage, df_input_attributes, on="Execution ID")
     df = df.rename(columns=lambda x: x.strip())
@@ -59,4 +61,8 @@ def __build_dataframe():
 
 
 if __name__ == "__main__":
-    run()
+    output_dir = sys.argv[1] if len(sys.argv) > 1 else "/output"
+
+    plt.figure(figsize=(9, 9))
+
+    run(output_dir)
