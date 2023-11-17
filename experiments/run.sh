@@ -44,6 +44,21 @@ function launch_container {
             $@
 }
 
+function launch_container_with_memory_restriction {
+    local memory_limit=$1
+
+    docker rm -f ${DOCKER_CONTAINER_NAME} > /dev/null 2>&1
+    docker run \
+        -m ${memory_limit}k \
+        -v ${BASE_DIR}/${OUTPUT_DIR}:/output \
+        --name ${DOCKER_CONTAINER_NAME} \
+        ${DOCKER_IMAGE_NAME} \
+            ${@:2} 2> /dev/null
+    
+    local exit_code=$?
+    echo "Capture EXIT_CODE: ${exit_code}"
+}
+
 function setup_observer {
     local execution_id
     local execution_entrypoint_pid
@@ -184,7 +199,7 @@ function progress_bar {
     local description_space=$((${TERMINAL_COLUMNS} - ${#description_header} - ${#description_status}))
     
     if [ "${percentage}" -eq "0" ]; then
-        unset progress_bar
+        unset percentage_bar
     fi
  
     echo -e "${description_header}$(printf ' %.0s' $(seq 1 ${description_space}))${description_status}"

@@ -1,16 +1,12 @@
 OUTPUT_DIR="002-memory-usage-profile/output/${OUTPUT_TIMESTAMP}"
 OUTPUT_EXECUTION_INPUT_PARAMETERS_REFERENCE_FILENAME="execution-input-parameters-reference.csv"
 
-D2=10
-D3=10
-NUM_SAMPLES=1
-#NUM_SAMPLES=35
-SHAPE_BASE_SIZE=10
-#SHAPE_BASE_SIZE=200
-SHAPE_STEP_SIZE=10
-#SHAPE_STEP_SIZE=200
-SHAPE_LIMIT_SIZE=10
-#SHAPE_LIMIT_SIZE=10000
+D2=100
+D3=100
+NUM_SAMPLES=35
+SHAPE_BASE_SIZE=200
+SHAPE_STEP_SIZE=200
+SHAPE_LIMIT_SIZE=10000
 
 function run_experiment {
     echo "Starting memory usage profile experiment"
@@ -30,7 +26,6 @@ function print_experiment_summary {
 
 function __collect_results {
     local attributes=$(ls "${BASE_DIR}/common/attributes" | sed s"/.py//g")
-    attributes="new"
     local shapes=$(for i in `seq ${SHAPE_BASE_SIZE} ${SHAPE_STEP_SIZE} ${SHAPE_LIMIT_SIZE}`; do echo $i; done)
     local iterations_total=$(($(echo ${shapes} | wc -w) * ${NUM_SAMPLES} * $(echo ${attributes} | wc -w)))
     local current_iteration=1

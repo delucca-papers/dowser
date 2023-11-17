@@ -43,7 +43,7 @@ def __plot_all(data, output_dir):
 
 
 def __save_summary(df, output_dir):
-    df.to_csv(f"{output_dir}/summary.csv")
+    df.to_csv(f"{output_dir}/memory-usage-summary.csv")
 
 
 def __build_dataframe(output_dir):
