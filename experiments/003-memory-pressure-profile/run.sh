@@ -12,8 +12,8 @@ SHAPE_STEP_SIZE=100
 #SHAPE_STEP_SIZE=200
 SHAPE_LIMIT_SIZE=100
 #SHAPE_LIMIT_SIZE=10000
-PRESSURE_START_PERCENTAGE=5
-PRESSURE_PERCENTAGE_STEP=5
+PRESSURE_START_PERCENTAGE=1
+PRESSURE_PERCENTAGE_STEP=1
 
 function run_experiment {
     echo "Starting memory pressure profile experiment"
@@ -77,7 +77,7 @@ function __collect_sample_results {
         ${D2} \
         ${D3} \
         ${attribute} \
-    | setup_observer | __setup_input_parameters_reference_file | __setup_memory_pressure_file ${memory_pressure} | observe_memory_usage_signals | handle_log
+    | setup_observer | __setup_input_parameters_reference_file | __setup_memory_pressure_file ${memory_pressure} | observe_execution_time_signal | observe_memory_usage_signals | handle_log
 }
 
 function __setup_input_parameters_reference_file {

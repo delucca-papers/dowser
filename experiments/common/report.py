@@ -15,4 +15,4 @@ def wait_for_signal(signal_type: str):
     print(f"Waiting for {signal_type} signal...")
 
     while waiting_for_signal:
-        sleep(1)
+        sleep(0.1)

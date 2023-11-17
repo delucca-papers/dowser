@@ -7,6 +7,7 @@ OUTPUT_TIMESTAMP=$(date '+%Y-%m-%d_%H-%M-%S')
 OUTPUT_DIR="output/${OUTPUT_TIMESTAMP}"
 OUTPUT_MEMORY_USAGE_FILENAME="memory-usage.csv"
 OUTPUT_ENTRYPOINT_PID_REFERENCE_FILENAME="entrypoint-pid-reference.csv"
+OUTPUT_EXECUTION_TIME_FILENAME="execution-time.csv"
 
 TERMINAL_COLUMNS=$(tput cols)
 TERMINAL_DIVIDER=$(printf -- "-%.0s"  $(seq 1 ${TERMINAL_COLUMNS}))
@@ -134,6 +135,28 @@ function observe_memory_usage_signals {
     done
     
     echo "${execution_id}, ${initial_mem_usage}, ${data_mem_usage}, ${computing_mem_usage}, ${final_mem_usage}" >> "${OUTPUT_DIR}/${OUTPUT_MEMORY_USAGE_FILENAME}"
+}
+
+function observe_execution_time_signal {
+    local stored_file
+    local filepath="${OUTPUT_DIR}/${OUTPUT_EXECUTION_TIME_FILENAME}"
+    
+    while read execution_id execution_entrypoint_pid line; do
+        if [[ ${line} == *"EXECUTION_TIME"* ]]; then
+            if [[ -z ${stored_file} ]]; then
+                if [[ ! -f "${filepath}" ]]; then
+                    echo "Execution ID, Execution time" > "${filepath}"
+                fi
+                
+                stored_file=true
+            fi
+
+            local execution_time=$(echo ${line} | cut -d ' ' -f 3)
+            echo "${execution_id}, ${execution_time}" >> "${filepath}"
+        fi
+       
+        echo ${execution_id} ${execution_entrypoint_pid} ${line}
+    done
 }
 
 function handle_log {
