@@ -4,16 +4,9 @@ OUTPUT_MEMORY_PRESSURE_FILENAME="memory-pressure.csv"
 
 D2=100
 D3=100
-NUM_SAMPLES=1
-#NUM_SAMPLES=35
-SHAPE_BASE_SIZE=100
-#SHAPE_BASE_SIZE=200
-SHAPE_STEP_SIZE=100
-#SHAPE_STEP_SIZE=200
-SHAPE_LIMIT_SIZE=100
-#SHAPE_LIMIT_SIZE=10000
-PRESSURE_START_PERCENTAGE=1
-PRESSURE_PERCENTAGE_STEP=1
+PRESSURE_START_PERCENTAGE=5
+PRESSURE_PERCENTAGE_STEP=5
+SUMMARY_RELATIVE_FILEPATH="003-memory-pressure-profile/assets/memory-usage-summary.csv"
 
 function run_experiment {
     echo "Starting memory pressure profile experiment"
@@ -23,17 +16,15 @@ function run_experiment {
 }
 
 function print_experiment_summary {
-    printf "${TABLE_FORMAT}" "Dimension 1 shape base size" "${SHAPE_BASE_SIZE}"
-    printf "${TABLE_FORMAT}" "Dimension 1 shape step size" "${SHAPE_STEP_SIZE}"
     printf "${TABLE_FORMAT}" "Shape of dimension 2" "${D2}"
     printf "${TABLE_FORMAT}" "Shape of dimension 3" "${D3}"
-    printf "${TABLE_FORMAT}" "Number of samples" "${NUM_SAMPLES}"
-    printf "${TABLE_FORMAT}" "Shape limit size" "${SHAPE_LIMIT_SIZE}"
+    printf "${TABLE_FORMAT}" "Pressure start percentage" "${PRESSURE_START_PERCENTAGE}%"
     printf "${TABLE_FORMAT}" "Pressure percentage step" "${PRESSURE_PERCENTAGE_STEP}%"
+    printf "${TABLE_FORMAT}" "Summary file" "${SUMMARY_RELATIVE_FILEPATH}"
 }
 
 function __collect_results {
-    local data=$(cat "${BASE_DIR}/003-memory-pressure-profile/assets/memory-usage-summary.csv" | tail -n +2)
+    local data=$(cat "${BASE_DIR}/${SUMMARY_RELATIVE_FILEPATH}" | tail -n +2)
     local iterations_total=$(echo ${data} | wc -w)
     local current_iteration=1
     local last_execution_exit_code=0
@@ -44,11 +35,11 @@ function __collect_results {
         local max_memory_usage=$(echo ${line} | cut -d ',' -f 6 | cut -d '.' -f 1)
         local current_memory_pressure=${PRESSURE_START_PERCENTAGE}
         
-        progress_bar ${current_iteration} ${iterations_total} "computing attribute ${attribute_name} using shape (${shape}, ${D2}, ${D3})"
 
-        while [ ${last_execution_exit_code} -eq 0 ]; do
+        while [ "${last_execution_exit_code}" -eq "0" ]; do
             local memory_restriction=$((${max_memory_usage} * $((100 - ${current_memory_pressure})) / 100))
 
+            progress_bar ${current_iteration} ${iterations_total} "computing attribute ${attribute_name} using shape (${shape}, ${D2}, ${D3}) with memory pressure of ${current_memory_pressure}%"
             __collect_sample_results ${memory_restriction} ${current_memory_pressure} ${attribute_name} ${shape} ${current_iteration}
 
             current_memory_pressure=$((${current_memory_pressure} + ${PRESSURE_PERCENTAGE_STEP}))
