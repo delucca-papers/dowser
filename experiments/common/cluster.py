@@ -1,14 +1,12 @@
 def run_attribute(attribute, input, n_workers=1, single_threaded=False):
-    return (
-        __run_single_threaded(attribute, input)
-        if single_threaded
-        else __run_in_local_cluster(attribute, input, n_workers)
-    )
+    if single_threaded:
+        return __run_single_threaded(attribute, input)
+    else:
+        return __run_in_local_cluster(attribute, input, n_workers)
 
 
 def __run_single_threaded(attribute, input):
-    task = attribute._lazy_transform_cpu(X=input)
-    return task.compute()
+    return attribute._lazy_transform_cpu(X=input).compute()
 
 
 def __run_in_local_cluster(attribute, input, n_workers):

@@ -21,6 +21,7 @@ To run an experiment you can open a new shell on this folder and run the followi
 
 ## Experiments
 
-- [**001-smaps-progression**](./001-smaps-progression/README.md): This experiments evaluates the progression of the `smaps_rollup` file while running a seismic attribute with DASF;
-- [**002-memory-usage-profile**](./002-memory-usage-profile/): This experiment aims to evaluate the memory usage profile of all seismic attributes;
-- [**003-memory-pressure-profile**](./003-memory-pressure-profile/): This experiment aims to evaluate how much memory pressure each seismic attribute accepts.
+- [**001-smaps-progression**](./001-smaps-progression/README.md): Evaluates the progression of the `smaps_rollup` file while running a seismic attribute with DASF;
+- [**002-memory-usage-profile**](./002-memory-usage-profile/): Evaluates the memory usage profile of all seismic attributes;
+- [**003-memory-pressure-profile**](./003-memory-pressure-profile/): Evaluates how much memory pressure each seismic attribute accepts;
+- [**004-synthetic-data-validation**](./004-synthetic-data-validation/): Validates if synthetic data has the same memory usage profile as real data.

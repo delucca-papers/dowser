@@ -43,6 +43,7 @@ COPY --chown=${UID}:${GID} common ${BASEDIR}/common
 COPY --chown=${UID}:${GID} 001-smaps-progression ${BASEDIR}/001-smaps-progression
 COPY --chown=${UID}:${GID} 002-memory-usage-profile ${BASEDIR}/002-memory-usage-profile
 COPY --chown=${UID}:${GID} 003-memory-pressure-profile ${BASEDIR}/003-memory-pressure-profile
+COPY --chown=${UID}:${GID} 004-synthetic-data-validation ${BASEDIR}/004-synthetic-data-validation
 
 ENV PYTHONPATH "${PYTHONPATH}:${BASEDIR}"
 
