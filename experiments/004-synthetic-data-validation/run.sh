@@ -1,13 +1,20 @@
+#!/usr/bin/env bash
+
 OUTPUT_DIR="004-synthetic-data-validation/output/${OUTPUT_TIMESTAMP}"
 OUTPUT_EXECUTION_INPUT_PARAMETERS_REFERENCE_FILENAME="execution-input-parameters-reference.csv"
 
 NUM_SAMPLES=1
 CHUNK_SIZE=650
 #NUM_SAMPLES=35
-DATASETS="f3"
+DATASETS="parihaka"
+#DATASETS="f3 parihaka"
 
 F3_SHAPE="650,950,461"
+PARIHAKA_SHAPE="650,950,461"
 
+source "${BASE_DIR}/common/scripts/launchers.sh"
+source "${BASE_DIR}/common/scripts/observers.sh"
+source "${BASE_DIR}/common/scripts/reports.sh"
 
 function run_experiment {
     echo "Starting synthetic data validation experiment"
@@ -30,7 +37,7 @@ function __collect_results {
     
     for attribute in ${attributes}; do
         for dataset in ${DATASETS}; do
-            progress_bar ${current_iteration} ${iterations_total} "comparing synthetic data for attribute ${attribute} using dataset ${dataset}"
+            report_progress ${current_iteration} ${iterations_total} "comparing synthetic data for attribute ${attribute} using dataset ${dataset}"
             
             local dataset_shape=$(set -o posix; set | grep "${dataset^^}_SHAPE" | cut -d '=' -f 2)
             __collect_sample_results ${attribute} ${dataset_shape} ${dataset}
@@ -59,7 +66,11 @@ function __collect_sample_results {
         ${dataset} \
         "real" \
         ${CHUNK_SIZE} \
-    | setup_observer | __setup_input_parameters_reference_file | observe_memory_usage_signals | handle_log
+    | observe_stdout "${DOCKER_CONTAINER_NAME}" "${EXPERIMENT_NAME}" "${OUTPUT_DIR}" \
+    | __observe_input_parameters \
+    | observe_memory_usage_signals "${OUTPUT_DIR}" \
+    | handle_stdout "${LOG_VERBOSE}"
+
 
     launch_container 004-synthetic-data-validation.experiment \
         ${d1} \
@@ -69,10 +80,13 @@ function __collect_sample_results {
         ${dataset} \
         "synthetic" \
         ${CHUNK_SIZE} \
-    | setup_observer | __setup_input_parameters_reference_file | observe_memory_usage_signals | handle_log
+    | observe_stdout "${DOCKER_CONTAINER_NAME}" "${EXPERIMENT_NAME}" "${OUTPUT_DIR}" \
+    | __observe_input_parameters \
+    | observe_memory_usage_signals "${OUTPUT_DIR}" \
+    | handle_stdout "${LOG_VERBOSE}"
 }
 
-function __setup_input_parameters_reference_file {
+function __observe_input_parameters {
     local stored_reference
     local reference_filepath="${OUTPUT_DIR}/${OUTPUT_EXECUTION_INPUT_PARAMETERS_REFERENCE_FILENAME}"
     
@@ -96,6 +110,7 @@ function __setup_input_parameters_reference_file {
 
 function __parse_input_parameters {
     local parameters=$1
+
     local d1=$(echo ${parameters} | cut -d ' ' -f 3)
     local d2=$(echo ${parameters} | cut -d ' ' -f 4)
     local d3=$(echo ${parameters} | cut -d ' ' -f 5)

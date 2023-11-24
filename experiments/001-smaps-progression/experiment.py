@@ -8,4 +8,4 @@ if __name__ == "__main__":
     d3 = int(argv[3])
     num_workers = int(argv[4])
 
-    run_attribute(d1, d2, d3, "envelope", num_workers=num_workers)
+    run_attribute(d1, d2, d3, "envelope", n_workers=num_workers)

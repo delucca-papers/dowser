@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 OUTPUT_DIR="002-memory-usage-profile/output/${OUTPUT_TIMESTAMP}"
 OUTPUT_EXECUTION_INPUT_PARAMETERS_REFERENCE_FILENAME="execution-input-parameters-reference.csv"
 
@@ -7,6 +9,10 @@ NUM_SAMPLES=35
 SHAPE_BASE_SIZE=200
 SHAPE_STEP_SIZE=200
 SHAPE_LIMIT_SIZE=10000
+
+source "${BASE_DIR}/common/scripts/launchers.sh"
+source "${BASE_DIR}/common/scripts/observers.sh"
+source "${BASE_DIR}/common/scripts/reports.sh"
 
 function run_experiment {
     echo "Starting memory usage profile experiment"
@@ -26,6 +32,7 @@ function print_experiment_summary {
 
 function __collect_results {
     local attributes=$(ls "${BASE_DIR}/common/attributes" | sed s"/.py//g")
+    attributes="envelope semblance"
     local shapes=$(for i in `seq ${SHAPE_BASE_SIZE} ${SHAPE_STEP_SIZE} ${SHAPE_LIMIT_SIZE}`; do echo $i; done)
     local iterations_total=$(($(echo ${shapes} | wc -w) * ${NUM_SAMPLES} * $(echo ${attributes} | wc -w)))
     local current_iteration=1
@@ -33,7 +40,7 @@ function __collect_results {
     for attribute in ${attributes}; do
         for shape in ${shapes}; do
             for i in `seq 1 ${NUM_SAMPLES}`; do
-                progress_bar ${current_iteration} ${iterations_total} "computing attribute ${attribute} using shape (${shape}, ${D2}, ${D3})"
+                report_progress ${current_iteration} ${iterations_total} "computing attribute ${attribute} using shape (${shape}, ${D2}, ${D3})"
                 __collect_sample_results ${attribute} ${shape} ${i}
 
                 current_iteration=$((${current_iteration} + 1))
@@ -54,10 +61,13 @@ function __collect_sample_results {
         ${D2} \
         ${D3} \
         ${attribute} \
-    | setup_observer | __setup_input_parameters_reference_file | observe_memory_usage_signals | handle_log
+    | observe_stdout "${DOCKER_CONTAINER_NAME}" "${EXPERIMENT_NAME}" "${OUTPUT_DIR}" \
+    | __observe_input_parameters \
+    | observe_memory_usage_signals "${OUTPUT_DIR}" \
+    | handle_stdout "${LOG_VERBOSE}"
 }
 
-function __setup_input_parameters_reference_file {
+function __observe_input_parameters {
     local stored_reference
     local reference_filepath="${OUTPUT_DIR}/${OUTPUT_EXECUTION_INPUT_PARAMETERS_REFERENCE_FILENAME}"
     
@@ -81,6 +91,7 @@ function __setup_input_parameters_reference_file {
 
 function __parse_input_parameters {
     local parameters=$1
+    
     local d1=$(echo ${parameters} | cut -d ' ' -f 3)
     local d2=$(echo ${parameters} | cut -d ' ' -f 4)
     local d3=$(echo ${parameters} | cut -d ' ' -f 5)

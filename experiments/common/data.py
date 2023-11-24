@@ -12,6 +12,7 @@ def load(dataset_name: str, chunk_size: int):
 
     dataset_component_name_hashtable = {
         "f3": "F3",
+        "parihaka": "ParihakaFull",
     }
     dataset_component_name = dataset_component_name_hashtable[dataset_name]
 
@@ -20,5 +21,6 @@ def load(dataset_name: str, chunk_size: int):
     )
     dataset = dataset_component(chunks={"iline": chunk_size})
     dataset._lazy_load_cpu()
+    print(dataset.shape)
 
     return dataset._data[0:chunk_size]

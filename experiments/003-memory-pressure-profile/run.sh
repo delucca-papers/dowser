@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 OUTPUT_DIR="003-memory-pressure-profile/output/${OUTPUT_TIMESTAMP}"
 OUTPUT_EXECUTION_INPUT_PARAMETERS_REFERENCE_FILENAME="execution-input-parameters-reference.csv"
 OUTPUT_MEMORY_PRESSURE_FILENAME="memory-pressure.csv"
@@ -7,6 +9,10 @@ D3=100
 PRESSURE_START_PERCENTAGE=5
 PRESSURE_PERCENTAGE_STEP=5
 SUMMARY_RELATIVE_FILEPATH="003-memory-pressure-profile/assets/memory-usage-summary.csv"
+
+source "${BASE_DIR}/common/scripts/launchers.sh"
+source "${BASE_DIR}/common/scripts/observers.sh"
+source "${BASE_DIR}/common/scripts/reports.sh"
 
 function run_experiment {
     echo "Starting memory pressure profile experiment"
@@ -39,7 +45,7 @@ function __collect_results {
         while [ "${last_execution_exit_code}" -eq "0" ]; do
             local memory_restriction=$((${max_memory_usage} * $((100 - ${current_memory_pressure})) / 100))
 
-            progress_bar ${current_iteration} ${iterations_total} "computing attribute ${attribute_name} using shape (${shape}, ${D2}, ${D3}) with memory pressure of ${current_memory_pressure}%"
+            report_progress ${current_iteration} ${iterations_total} "computing attribute ${attribute_name} using shape (${shape}, ${D2}, ${D3}) with memory pressure of ${current_memory_pressure}%"
             __collect_sample_results ${memory_restriction} ${current_memory_pressure} ${attribute_name} ${shape} ${current_iteration}
 
             current_memory_pressure=$((${current_memory_pressure} + ${PRESSURE_PERCENTAGE_STEP}))
@@ -68,10 +74,15 @@ function __collect_sample_results {
         ${D2} \
         ${D3} \
         ${attribute} \
-    | setup_observer | __setup_input_parameters_reference_file | __setup_memory_pressure_file ${memory_pressure} | observe_execution_time_signal | observe_memory_usage_signals | handle_log
+    | observe_stdout "${DOCKER_CONTAINER_NAME}" "${EXPERIMENT_NAME}" "${OUTPUT_DIR}" \
+    | __observe_input_parameters \
+    | __observe_memory_pressure ${memory_pressure} \
+    | observe_execution_time_signal "${OUTPUT_DIR}" \
+    | observe_memory_usage_signals "${OUTPUT_DIR}" \
+    | handle_stdout "${LOG_VERBOSE}"
 }
 
-function __setup_input_parameters_reference_file {
+function __observe_input_parameters {
     local stored_reference
     local reference_filepath="${OUTPUT_DIR}/${OUTPUT_EXECUTION_INPUT_PARAMETERS_REFERENCE_FILENAME}"
     
@@ -93,10 +104,11 @@ function __setup_input_parameters_reference_file {
     done
 }
 
-function __setup_memory_pressure_file {
+function __observe_memory_pressure {
+    local current_memory_pressure=$1
+
     local stored_file
     local filepath="${OUTPUT_DIR}/${OUTPUT_MEMORY_PRESSURE_FILENAME}"
-    local current_memory_pressure=$1
     
     while read execution_id execution_entrypoint_pid line; do
         if [[ ${line} == *"EXIT_CODE"* ]]; then
@@ -120,6 +132,7 @@ function __setup_memory_pressure_file {
 
 function __parse_input_parameters {
     local parameters=$1
+    
     local d1=$(echo ${parameters} | cut -d ' ' -f 3)
     local d2=$(echo ${parameters} | cut -d ' ' -f 4)
     local d3=$(echo ${parameters} | cut -d ' ' -f 5)
