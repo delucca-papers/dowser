@@ -1,9 +1,0 @@
-{
-  "name": "Dowser",
-  "service": "workspace",
-  "workspaceFolder": "/workspace",
-	"dockerComposeFile": [
-		"docker-compose.yml"
-	],
-  "shutdownAction": "stopCompose"
-}
